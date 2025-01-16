@@ -15,20 +15,37 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="test.cpp">
-      <Filter>头文件</Filter>
-    </ClCompile>
-    <ClCompile Include="test0.cpp">
-      <Filter>头文件</Filter>
-    </ClCompile>
     <ClCompile Include="Timer.h">
       <Filter>头文件</Filter>
     </ClCompile>
-    <ClCompile Include="main.cpp">
+    <ClCompile Include="main1.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="Timer.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="ToolFunc.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="D3D12App.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="test.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="test0.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ToolFunc.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="D3D12App.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

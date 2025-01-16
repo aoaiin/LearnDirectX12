@@ -139,11 +139,18 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="D3D12App.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="main1.cpp" />
     <ClCompile Include="test.cpp" />
     <ClCompile Include="test0.cpp" />
     <ClCompile Include="Timer.cpp" />
     <ClCompile Include="Timer.h" />
+    <ClCompile Include="ToolFunc.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="D3D12App.h" />
+    <ClInclude Include="ToolFunc.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
