@@ -19,6 +19,8 @@
 #include <windowsx.h>
 //#include "F:\MyDX12WorkSpace\DX12Initialize\common\d3dx12.h"
 #include "D:\Learning\Direct3D\Asserts\Common\d3dx12.h"
+#include "Timer.h"
+
 #include <comdef.h>
 
 using namespace Microsoft::WRL;
@@ -175,6 +177,44 @@ std::wstring DxException::ToString()const
 #endif
 
 
+
+//声明GameTime类
+_GameTimer::GameTimer gt;
+
+void CalculateFrameState();
+
+void CalculateFrameState()
+{
+	using namespace _GameTimer;
+	static int frameCnt = 0;	//总帧数
+	static float timeElapsed = 0.0f;	//流逝的时间
+	frameCnt++;	//每帧++，经过一秒后其即为FPS值
+	//调试模块
+	//std::wstring text = std::to_wstring(gt.TotalTime());
+	//std::wstring windowText = text;
+	//SetWindowText(mhMainWnd, windowText.c_str());
+	//判断模块
+	// 之前 run 中忘记 reset了，所以一直显示 1 fps
+	if (gt.TotalTime() - timeElapsed >= 1.0f)	//一旦>=0，说明刚好过一秒
+	{
+		//float fps = (float)frameCnt;//每秒多少帧
+		float fps = frameCnt;//每秒多少帧
+		float mspf = 1000.0f / fps;	//每帧多少毫秒
+
+		std::wstring fpsStr = std::to_wstring(fps);//转为宽字符
+		std::wstring mspfStr = std::to_wstring(mspf);
+		//将帧数据显示在窗口上
+		std::wstring windowText = L"D3D12Init    fps:" + fpsStr + L"    " + L"mspf" + mspfStr;
+		SetWindowText(mhMainWnd, windowText.c_str());
+
+		//为计算下一组帧数值而重置
+		frameCnt = 0;
+		timeElapsed += 1.0f;
+	}
+}
+
+
+
 bool InitWindow(HINSTANCE hInstance, int nShowCmd)
 {
 	//窗口初始化描述结构体(WNDCLASS)
@@ -229,6 +269,12 @@ int Run()
 	//消息循环
 	//定义消息结构体
 	MSG msg = { 0 };
+
+
+	//每次循环开始都要重置计时器
+	gt.Reset();
+
+
 	//如果GetMessage函数不等于0，说明没有接受到WM_QUIT
 	while (msg.message != WM_QUIT)
 	{
@@ -241,7 +287,18 @@ int Run()
 		//否则就执行动画和游戏逻辑
 		else
 		{
-			Draw();
+			//Draw();
+			gt.Tick();	//计算每两帧间隔时间
+			if (!gt.IsStopped())//如果不是暂停状态，我们才运行游戏
+			{
+				CalculateFrameState();
+				Draw();
+			}
+			//如果是暂停状态，则休眠100秒
+			else
+			{
+				Sleep(100);
+			}
 		}
 	}
 	return (int)msg.wParam;
@@ -514,7 +571,7 @@ void Draw()
 	cmdList->RSSetScissorRects(1, &scissorRect);
 
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE(rtvHeap->GetCPUDescriptorHandleForHeapStart(), ref_mCurrentBackBuffer, rtvDescriptorSize);
-	cmdList->ClearRenderTargetView(rtvHandle, DirectX::Colors::DarkRed, 0, nullptr);//清除RT背景色为暗红，并且不设置裁剪矩形
+	cmdList->ClearRenderTargetView(rtvHandle, DirectX::Colors::Aqua, 0, nullptr);//清除RT背景色为暗红，并且不设置裁剪矩形
 	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = dsvHeap->GetCPUDescriptorHandleForHeapStart();
 	cmdList->ClearDepthStencilView(dsvHandle,	//DSV描述符句柄
 		D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,	//FLAG
