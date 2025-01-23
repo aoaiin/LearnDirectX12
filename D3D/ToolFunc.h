@@ -19,7 +19,7 @@
 #include <sstream>
 #include <windowsx.h>
 #include <comdef.h>
-#include "D:\Learning\Direct3D\Asserts\Common\d3dx12.h"
+//#include "D:\Learning\Direct3D\Asserts\Common\d3dx12.h"
 
 //LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lparam);
 

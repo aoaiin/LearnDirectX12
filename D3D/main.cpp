@@ -6,23 +6,23 @@ using namespace std;
 
 //HWND mhMainWnd = 0;	//某个窗口的句柄，ShowWindow和UpdateWindow函数均要调用此句柄
 
-LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lparam);
-//窗口过程函数
-LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
-{
-	//消息处理
-	switch (msg)
-	{
-		//当窗口被销毁时，终止消息循环
-	case WM_DESTROY:
-		PostQuitMessage(0);	//终止消息循环，并发出WM_QUIT消息
-		return 0;
-	default:
-		break;
-	}
-	//将上面没有处理的消息转发给默认的窗口过程
-	return DefWindowProc(hwnd, msg, wParam, lParam);
-}
+//LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lparam);
+////窗口过程函数
+//LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+//{
+//	//消息处理
+//	switch (msg)
+//	{
+//		//当窗口被销毁时，终止消息循环
+//	case WM_DESTROY:
+//		PostQuitMessage(0);	//终止消息循环，并发出WM_QUIT消息
+//		return 0;
+//	default:
+//		break;
+//	}
+//	//将上面没有处理的消息转发给默认的窗口过程
+//	return DefWindowProc(hwnd, msg, wParam, lParam);
+//}
 
 //窗口过程函数的声明,HWND是主窗口句柄
 //LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lparam);
@@ -84,5 +84,9 @@ D3D12InitApp::~D3D12InitApp()
 
 void D3D12InitApp::Draw()
 {
-	//__super::Draw();
+	// 原来一直 调试不好
+	// 原来 C++没有super，只能 直接用 父类::
+	D3D12App::Draw();
 }
+
+

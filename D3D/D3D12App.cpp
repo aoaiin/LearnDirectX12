@@ -1,11 +1,61 @@
 #include "D3D12App.h"
 
+
+LRESULT CALLBACK
+MainWndProc_1(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+	// Forward hwnd on because we can get messages (e.g., WM_CREATE)
+	// before CreateWindow returns, and thus before mhMainWnd is valid.
+
+		//消息处理
+	switch (msg)
+	{
+		//当窗口被销毁时，终止消息循环
+	case WM_DESTROY:
+		PostQuitMessage(0);	//终止消息循环，并发出WM_QUIT消息
+		return 0;
+	default:
+		break;
+	}
+	//将上面没有处理的消息转发给默认的窗口过程
+	return DefWindowProc(hwnd, msg, wParam, lParam);
+
+	return D3D12App::GetApp()->MsgProc(hwnd, msg, wParam, lParam);
+}
+
+LRESULT CALLBACK
+MainWndProc_0(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+		//消息处理
+	switch (msg)
+	{
+		//当窗口被销毁时，终止消息循环
+	case WM_DESTROY:
+		PostQuitMessage(0);	//终止消息循环，并发出WM_QUIT消息
+		return 0;
+	default:
+		break;
+	}
+	//将上面没有处理的消息转发给默认的窗口过程
+	return DefWindowProc(hwnd, msg, wParam, lParam);
+}
+
 D3D12App::D3D12App()
 {
+	assert(mApp == nullptr);
+	mApp = this;
 }
 
 D3D12App::~D3D12App()
 {
+	if (d3dDevice != nullptr)
+		FlushCmdQueue();
+}
+
+D3D12App* D3D12App::mApp = nullptr;
+D3D12App* D3D12App::GetApp()
+{
+	return mApp;
 }
 
 int D3D12App::Run()
@@ -32,6 +82,7 @@ int D3D12App::Run()
 			gt.Tick();	//计算每两帧间隔时间
 			if (!gt.IsStopped())//如果不是暂停状态，我们才运行游戏
 			{
+				
 				CalculateFrameState();
 				Draw();
 			}
@@ -67,7 +118,7 @@ bool D3D12App::InitWindow(HINSTANCE hInstance, int nShowCmd)
 	//窗口初始化描述结构体(WNDCLASS)
 	WNDCLASS wc;
 	wc.style = CS_HREDRAW | CS_VREDRAW;	//当工作区宽高改变，则重新绘制窗口
-	wc.lpfnWndProc = MainWndProc;	//指定窗口过程
+	wc.lpfnWndProc = MainWndProc_0;	//指定窗口过程
 	wc.cbClsExtra = 0;	//借助这两个字段来为当前应用分配额外的内存空间（这里不分配，所以置0）
 	wc.cbWndExtra = 0;	//借助这两个字段来为当前应用分配额外的内存空间（这里不分配，所以置0）
 	wc.hInstance = hInstance;	//应用程序实例句柄（由WinMain传入）
@@ -137,7 +188,7 @@ bool D3D12App::InitDirect3D()
 
 void D3D12App::Draw()
 {
-	printf("Draw\n");
+	//printf("Draw\n");
 
 	ThrowIfFailed(cmdAllocator->Reset());//重复使用记录命令的相关内存
 	ThrowIfFailed(cmdList->Reset(cmdAllocator.Get(), nullptr));//复用命令列表及其内存
@@ -401,4 +452,22 @@ void D3D12App::CalculateFrameState()
 		frameCnt = 0;
 		timeElapsed += 1.0f;
 	}
+}
+
+LRESULT D3D12App::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lparam)
+{
+	//消息处理
+	switch (msg)
+	{
+		//当窗口被销毁时，终止消息循环
+	case WM_DESTROY:
+		PostQuitMessage(0);	//终止消息循环，并发出WM_QUIT消息
+		return 0;
+	default:
+		//将帧数据显示在窗口上
+
+		break;
+	}
+	//将上面没有处理的消息转发给默认的窗口过程
+	return DefWindowProc(hwnd, msg, wParam, lparam);
 }

@@ -8,7 +8,7 @@ using namespace Microsoft::WRL;
 //#pragma comment(lib, "D3D12.lib")
 //#pragma comment(lib, "dxgi.lib")
 
-LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lparam);
+//LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lparam);
 
 
 class D3D12App
@@ -17,10 +17,14 @@ protected:
 	D3D12App();
 	virtual ~D3D12App();
 public:
+
+	static D3D12App* GetApp();
+
 	int Run();
 	bool Init(HINSTANCE hInstance, int nShowCmd);
 	bool InitWindow(HINSTANCE hInstance, int nShowCmd);
 	bool InitDirect3D();
+
 	virtual void Draw();
 
 	void CreateDevice();
@@ -36,7 +40,15 @@ public:
 
 	void FlushCmdQueue();
 	void CalculateFrameState();
+
+
+	//LRESULT CALLBACK MainWndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lparam);
+	virtual LRESULT CALLBACK MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lparam);// 窗口过程
+
 protected:
+
+	static D3D12App* mApp;
+
 	HWND mhMainWnd = 0;
 
 	//指针接口和变量声明
