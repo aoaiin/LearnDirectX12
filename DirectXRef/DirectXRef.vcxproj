@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{484be1e6-e053-4e4d-87c4-c88a8d4713b8}</ProjectGuid>
-    <RootNamespace>D3D</RootNamespace>
+    <ProjectGuid>{1bb39767-39f6-4ab9-a7bb-357959d5aed3}</ProjectGuid>
+    <RootNamespace>DirectXRef</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -112,6 +112,7 @@
       <ConformanceMode>false</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <EnableModules>false</EnableModules>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -129,6 +130,7 @@
       <ConformanceMode>false</ConformanceMode>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <EnableModules>false</EnableModules>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -139,17 +141,19 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="D3D12App.cpp" />
+    <ClCompile Include="..\Asserts\Common\d3dApp.cpp" />
+    <ClCompile Include="..\Asserts\Common\d3dUtil.cpp" />
+    <ClCompile Include="..\Asserts\Common\GameTimer.cpp" />
+    <ClCompile Include="..\Asserts\Common\MathHelper.cpp" />
     <ClCompile Include="main6.cpp" />
-    <ClCompile Include="test.cpp" />
-    <ClCompile Include="test0.cpp" />
-    <ClCompile Include="Timer.cpp" />
-    <ClCompile Include="Timer.h" />
-    <ClCompile Include="ToolFunc.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="D3D12App.h" />
-    <ClInclude Include="ToolFunc.h" />
+    <ClInclude Include="..\Asserts\Common\d3dApp.h" />
+    <ClInclude Include="..\Asserts\Common\d3dUtil.h" />
+    <ClInclude Include="..\Asserts\Common\d3dx12.h" />
+    <ClInclude Include="..\Asserts\Common\GameTimer.h" />
+    <ClInclude Include="..\Asserts\Common\MathHelper.h" />
+    <ClInclude Include="..\Asserts\Common\UploadBuffer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

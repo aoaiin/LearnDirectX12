@@ -25,7 +25,6 @@
 
 
 
-
 //AnsiToWString函数（转换成宽字符类型的字符串，wstring）
 //在Windows平台上，我们应该都使用wstring和wchar_t，处理方式是在字符串前+L
 inline std::wstring AnsiToWString(const std::string& str)
