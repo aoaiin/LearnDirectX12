@@ -145,7 +145,7 @@
     <ClCompile Include="..\Asserts\Common\d3dUtil.cpp" />
     <ClCompile Include="..\Asserts\Common\GameTimer.cpp" />
     <ClCompile Include="..\Asserts\Common\MathHelper.cpp" />
-    <ClCompile Include="main6.cpp" />
+    <ClCompile Include="main6L.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Asserts\Common\d3dApp.h" />

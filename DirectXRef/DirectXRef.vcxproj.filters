@@ -15,9 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="main6.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="..\Asserts\Common\d3dApp.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -28,6 +25,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="..\Asserts\Common\MathHelper.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="main6L.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

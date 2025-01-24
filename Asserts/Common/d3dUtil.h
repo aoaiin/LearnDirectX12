@@ -147,11 +147,12 @@ public:
 // geometries are stored in one vertex and index buffer.  It provides the offsets
 // and data needed to draw a subset of geometry stores in the vertex and index 
 // buffers so that we can implement the technique described by Figure 6.3.
+// 在MeshGeometry中定义了一个几何体的子物体。这用于混合物体（多个物体的局部缓冲区 组合为一个全局）的情况。
 struct SubmeshGeometry
 {
-	UINT IndexCount = 0;
-	UINT StartIndexLocation = 0;
-	INT BaseVertexLocation = 0;
+	UINT IndexCount = 0;// 索引数量
+	UINT StartIndexLocation = 0;// 基准索引位置
+	INT BaseVertexLocation = 0;// 基准顶点位置
 
     // Bounding box of the geometry defined by this submesh. 
     // This is used in later chapters of the book.
@@ -165,24 +166,47 @@ struct MeshGeometry
 
 	// System memory copies.  Use Blobs because the vertex/index format can be generic.
 	// It is up to the client to cast appropriately.  
+    // 系统变量内存的复制样本。我们使用Blob因为vertex/index可以用自定义结构体声明
 	Microsoft::WRL::ComPtr<ID3DBlob> VertexBufferCPU = nullptr;
 	Microsoft::WRL::ComPtr<ID3DBlob> IndexBufferCPU  = nullptr;
 
+    // 上传到GPU的顶点/索引资源
 	Microsoft::WRL::ComPtr<ID3D12Resource> VertexBufferGPU = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12Resource> IndexBufferGPU = nullptr;
 
+    // 顶点/索引的上传堆资源
 	Microsoft::WRL::ComPtr<ID3D12Resource> VertexBufferUploader = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12Resource> IndexBufferUploader = nullptr;
 
-    // Data about the buffers.
+    // Data about the buffers.// 缓冲区相关数据
 	UINT VertexByteStride = 0;
 	UINT VertexBufferByteSize = 0;
 	DXGI_FORMAT IndexFormat = DXGI_FORMAT_R16_UINT;
 	UINT IndexBufferByteSize = 0;
 
+
+    // 习题2：两个顶点缓冲区 传递数据
+    Microsoft::WRL::ComPtr<ID3DBlob> vPosBufferCpu = nullptr;
+    Microsoft::WRL::ComPtr<ID3DBlob> vColorBufferCpu = nullptr;
+
+    Microsoft::WRL::ComPtr<ID3D12Resource> vPosBufferUploader = nullptr;
+    Microsoft::WRL::ComPtr<ID3D12Resource> vColorBufferUploader = nullptr;
+
+    Microsoft::WRL::ComPtr<ID3D12Resource> vPosBufferGpu = nullptr;
+    Microsoft::WRL::ComPtr<ID3D12Resource> vColorBufferGpu = nullptr;
+
+    UINT vPosByteStride = 0;
+    UINT vColorByteStride = 0;
+    UINT vPosBufferByteSize = 0;
+    UINT vColorBufferByteSize = 0;
+
+
+
 	// A MeshGeometry may store multiple geometries in one vertex/index buffer.
 	// Use this container to define the Submesh geometries so we can draw
 	// the Submeshes individually.
+    // 一个MeshGeomotry可以用全局顶点/索引缓冲区中存储多个几何体；
+    // 使用这个容器来定义Submesh的几何图形，我们就可以利用submesh的name来查找它进行单独绘制
 	std::unordered_map<std::string, SubmeshGeometry> DrawArgs;
 
 	D3D12_VERTEX_BUFFER_VIEW VertexBufferView()const
@@ -194,6 +218,23 @@ struct MeshGeometry
 
 		return vbv;
 	}
+    D3D12_VERTEX_BUFFER_VIEW VertexPosBufferView()const
+    {
+        D3D12_VERTEX_BUFFER_VIEW vbv;
+        vbv.BufferLocation = vPosBufferGpu->GetGPUVirtualAddress();
+        vbv.StrideInBytes = vPosByteStride;
+        vbv.SizeInBytes = vPosBufferByteSize;
+        return vbv;
+    }
+    D3D12_VERTEX_BUFFER_VIEW VertexColorBufferView()const
+    {
+        D3D12_VERTEX_BUFFER_VIEW vbv;
+        vbv.BufferLocation = vColorBufferGpu->GetGPUVirtualAddress();
+        vbv.StrideInBytes = vColorByteStride;
+        vbv.SizeInBytes = vColorBufferByteSize;
+        return vbv;
+    }
+
 
 	D3D12_INDEX_BUFFER_VIEW IndexBufferView()const
 	{
@@ -205,7 +246,7 @@ struct MeshGeometry
 		return ibv;
 	}
 
-	// We can free this memory after we finish upload to the GPU.
+	// We can free this memory after we finish upload to the GPU.  在将数据上传到GPU后释放掉上传堆的内存
 	void DisposeUploaders()
 	{
 		VertexBufferUploader = nullptr;

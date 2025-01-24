@@ -113,7 +113,7 @@ bool D3DApp::Initialize()
 		return false;
 
     // Do the initial resize code.
-    OnResize();
+    OnResize();	// 修改 后台缓冲区、深度模板缓冲区 资源、视口、裁剪矩阵 的大小，以及描述符 
 
 	return true;
 }
@@ -145,23 +145,27 @@ void D3DApp::OnResize()
     assert(mDirectCmdListAlloc);
 
 	// Flush before changing any resources.
+	// 改变资源前 先同步 ： 等待 GPU 完成所有命令
 	FlushCommandQueue();
 
-    ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
+    ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));	// 重置命令列表
 
 	// Release the previous resources we will be recreating.
+	// 释放之前的资源，为我们重新创建做好准备
 	for (int i = 0; i < SwapChainBufferCount; ++i)
 		mSwapChainBuffer[i].Reset();
     mDepthStencilBuffer.Reset();
 	
+
 	// Resize the swap chain.
+	// **** 重新调整后台缓冲区资源的大小
     ThrowIfFailed(mSwapChain->ResizeBuffers(
 		SwapChainBufferCount, 
 		mClientWidth, mClientHeight, 
 		mBackBufferFormat, 
 		DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH));
 
-	mCurrBackBuffer = 0;
+	mCurrBackBuffer = 0; // 后台缓冲区索引置零
  
 	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHeapHandle(mRtvHeap->GetCPUDescriptorHandleForHeapStart());
 	for (UINT i = 0; i < SwapChainBufferCount; i++)
@@ -171,6 +175,8 @@ void D3DApp::OnResize()
 		rtvHeapHandle.Offset(1, mRtvDescriptorSize);
 	}
 
+
+	// 下面 是 创建深度/模板缓冲区的过程
     // Create the depth/stencil buffer and view.
     D3D12_RESOURCE_DESC depthStencilDesc;
     depthStencilDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
@@ -201,17 +207,23 @@ void D3DApp::OnResize()
     md3dDevice->CreateDepthStencilView(mDepthStencilBuffer.Get(), nullptr, DepthStencilView());
 
     // Transition the resource from its initial state to be used as a depth buffer.
+	// 把资源从初始状态转换到深度缓冲状态
 	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mDepthStencilBuffer.Get(),
 		D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_DEPTH_WRITE));
 	
-    // Execute the resize commands.
-    ThrowIfFailed(mCommandList->Close());
+
+    // Execute the resize commands.	
+    ThrowIfFailed(mCommandList->Close());	// 关闭命令列表
     ID3D12CommandList* cmdsLists[] = { mCommandList.Get() };
-    mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+    mCommandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);	// 执行命令列表
 
 	// Wait until resize is complete.
+	// 等待Resize命令完成（刷新队列）
 	FlushCommandQueue();
 
+
+
+	// 更新视口/投影矩阵适应窗口变换
 	// Update the viewport transform to cover the client area.
 	mScreenViewport.TopLeftX = 0;
 	mScreenViewport.TopLeftY = 0;
@@ -225,6 +237,7 @@ void D3DApp::OnResize()
  
 LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
+	// 消息处理
 	switch( msg )
 	{
 	// WM_ACTIVATE is sent when the window is activated or deactivated.  
@@ -243,14 +256,14 @@ LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		}
 		return 0;
 
-	// WM_SIZE is sent when the user resizes the window.  
+	// WM_SIZE is sent when the user resizes the window.  // 当窗口尺寸发生变换时
 	case WM_SIZE:
 		// Save the new client area dimensions.
 		mClientWidth  = LOWORD(lParam);
 		mClientHeight = HIWORD(lParam);
 		if( md3dDevice )
 		{
-			if( wParam == SIZE_MINIMIZED )
+			if( wParam == SIZE_MINIMIZED )	//如果最小化,则暂停游戏，调整最小化和最大化状态
 			{
 				mAppPaused = true;
 				mMinimized = true;
@@ -316,9 +329,9 @@ LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		OnResize();
 		return 0;
  
-	// WM_DESTROY is sent when the window is being destroyed.
+	// WM_DESTROY is sent when the window is being destroyed. 当窗口被销毁时，终止消息循环
 	case WM_DESTROY:
-		PostQuitMessage(0);
+		PostQuitMessage(0);	//终止消息循环，并发出WM_QUIT消息
 		return 0;
 
 	// The WM_MENUCHAR message is sent when a menu is active and the user presses 
@@ -332,10 +345,11 @@ LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		((MINMAXINFO*)lParam)->ptMinTrackSize.x = 200;
 		((MINMAXINFO*)lParam)->ptMinTrackSize.y = 200; 
 		return 0;
-
+	
+	// 鼠标按键按下时的触发（左中右）
 	case WM_LBUTTONDOWN:
 	case WM_MBUTTONDOWN:
-	case WM_RBUTTONDOWN:
+	case WM_RBUTTONDOWN:	// wParam为输入的虚拟键代码，lParam为系统反馈的光标信息
 		OnMouseDown(wParam, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 		return 0;
 	case WM_LBUTTONUP:
@@ -357,6 +371,7 @@ LRESULT D3DApp::MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         return 0;
 	}
 
+	// 将上面没有处理的消息转发给默认的窗口过程
 	return DefWindowProc(hwnd, msg, wParam, lParam);
 }
 

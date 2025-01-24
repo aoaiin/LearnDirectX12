@@ -40,6 +40,7 @@ public:
 	int Run();
  
     virtual bool Initialize();
+    // 窗口过程
     virtual LRESULT MsgProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 
 protected:
@@ -88,7 +89,7 @@ protected:
     bool      m4xMsaaState = false;    // 4X MSAA enabled
     UINT      m4xMsaaQuality = 0;      // quality level of 4X MSAA
 
-	// Used to keep track of the �delta-time?and game time (?.4).
+	// Used to keep track of the 揹elta-time?and game time (?.4).
 	GameTimer mTimer;
 	
     Microsoft::WRL::ComPtr<IDXGIFactory4> mdxgiFactory;
@@ -99,7 +100,7 @@ protected:
     UINT64 mCurrentFence = 0;
 	
     Microsoft::WRL::ComPtr<ID3D12CommandQueue> mCommandQueue;
-    Microsoft::WRL::ComPtr<ID3D12CommandAllocator> mDirectCmdListAlloc;
+    Microsoft::WRL::ComPtr<ID3D12CommandAllocator> mDirectCmdListAlloc; // 保存 cmdlist 的命令
     Microsoft::WRL::ComPtr<ID3D12GraphicsCommandList> mCommandList;
 
 	static const int SwapChainBufferCount = 2;

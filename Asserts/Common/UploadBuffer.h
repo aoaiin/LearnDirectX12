@@ -9,7 +9,7 @@ public:
     UploadBuffer(ID3D12Device* device, UINT elementCount, bool isConstantBuffer) : 
         mIsConstantBuffer(isConstantBuffer)
     {
-        mElementByteSize = sizeof(T);   //Èç¹û²»ÊÇ³£Á¿»º³åÇø£¬ÔòÖ±½Ó¼ÆËã»º´æ´óĞ¡
+        mElementByteSize = sizeof(T);   //å¦‚æœä¸æ˜¯å¸¸é‡ç¼“å†²åŒºï¼Œåˆ™ç›´æ¥è®¡ç®—ç¼“å­˜å¤§å°
 
         // Constant buffer elements need to be multiples of 256 bytes.
         // This is because the hardware can only view constant data 
@@ -19,9 +19,9 @@ public:
         // UINT   SizeInBytes;   // multiple of 256
         // } D3D12_CONSTANT_BUFFER_VIEW_DESC;
         if(isConstantBuffer)
-            mElementByteSize = d3dUtil::CalcConstantBufferByteSize(sizeof(T));  //Èç¹ûÊÇ³£Á¿»º³åÇø£¬ÔòÒÔ256µÄ±¶Êı¼ÆËã»º´æ´óĞ¡
+            mElementByteSize = d3dUtil::CalcConstantBufferByteSize(sizeof(T));  //å¦‚æœæ˜¯å¸¸é‡ç¼“å†²åŒºï¼Œåˆ™ä»¥256çš„å€æ•°è®¡ç®—ç¼“å­˜å¤§å°
 
-        //´´½¨ÉÏ´«¶ÑºÍ×ÊÔ´
+        //åˆ›å»ºä¸Šä¼ å †å’Œèµ„æº
         ThrowIfFailed(device->CreateCommittedResource(  
             &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
             D3D12_HEAP_FLAG_NONE,
@@ -30,8 +30,8 @@ public:
             nullptr,
             IID_PPV_ARGS(&mUploadBuffer)));
 
-        //·µ»ØÓû¸üĞÂ×ÊÔ´µÄÖ¸Õë
-        // £¨×Ó×ÊÔ´Ë÷Òı£¬¶ÔÓÚ»º³åÇøÀ´Ëµ£¬ËûµÄ×Ó×ÊÔ´¾ÍÊÇ×Ô¼º£©£»¶ÔÕû¸ö×ÊÔ´½øĞĞÓ³Éä£»·µ»Ø´ıÓ³Éä×ÊÔ´Êı¾İµÄÄ¿±êÄÚ´æ¿é
+        //è¿”å›æ¬²æ›´æ–°èµ„æºçš„æŒ‡é’ˆ
+        // ï¼ˆå­èµ„æºç´¢å¼•ï¼Œå¯¹äºç¼“å†²åŒºæ¥è¯´ï¼Œä»–çš„å­èµ„æºå°±æ˜¯è‡ªå·±ï¼‰ï¼›å¯¹æ•´ä¸ªèµ„æºè¿›è¡Œæ˜ å°„ï¼›è¿”å›å¾…æ˜ å°„èµ„æºæ•°æ®çš„ç›®æ ‡å†…å­˜å—
         ThrowIfFailed(mUploadBuffer->Map(0, nullptr, reinterpret_cast<void**>(&mMappedData)));
 
         // We do not need to unmap until we are done with the resource.  However, we must not write to
@@ -43,9 +43,9 @@ public:
     ~UploadBuffer()
     {
         if(mUploadBuffer != nullptr)
-            mUploadBuffer->Unmap(0, nullptr);//È¡ÏûÓ³Éä
+            mUploadBuffer->Unmap(0, nullptr);//å–æ¶ˆæ˜ å°„
 
-        mMappedData = nullptr;//ÊÍ·ÅÓ³ÉäÄÚ´æ
+        mMappedData = nullptr;//é‡Šæ”¾æ˜ å°„å†…å­˜
     }
 
     ID3D12Resource* Resource()const
@@ -53,7 +53,7 @@ public:
         return mUploadBuffer.Get();
     }
 
-    void CopyData(int elementIndex, const T& data)
+    void CopyData(int elementIndex, const T& data)  // æ›´æ–°æ•°æ®ï¼šå°† æ•°æ® æ‹·è´åˆ° ä¸Šä¼ å †
     {
         memcpy(&mMappedData[elementIndex*mElementByteSize], &data, sizeof(T));
     }
