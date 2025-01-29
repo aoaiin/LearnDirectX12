@@ -144,16 +144,22 @@
     <ClCompile Include="..\Asserts\Common\d3dApp.cpp" />
     <ClCompile Include="..\Asserts\Common\d3dUtil.cpp" />
     <ClCompile Include="..\Asserts\Common\GameTimer.cpp" />
+    <ClCompile Include="..\Asserts\Common\GeometryGenerator.cpp" />
     <ClCompile Include="..\Asserts\Common\MathHelper.cpp" />
-    <ClCompile Include="main6L.cpp" />
+    <ClCompile Include="main7\Waves\FrameResource.cpp" />
+    <ClCompile Include="main7\Waves\LandAndWavesApp.cpp" />
+    <ClCompile Include="main7\Waves\Waves.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Asserts\Common\d3dApp.h" />
     <ClInclude Include="..\Asserts\Common\d3dUtil.h" />
     <ClInclude Include="..\Asserts\Common\d3dx12.h" />
     <ClInclude Include="..\Asserts\Common\GameTimer.h" />
+    <ClInclude Include="..\Asserts\Common\GeometryGenerator.h" />
     <ClInclude Include="..\Asserts\Common\MathHelper.h" />
     <ClInclude Include="..\Asserts\Common\UploadBuffer.h" />
+    <ClInclude Include="main7\Waves\FrameResource.h" />
+    <ClInclude Include="main7\Waves\Waves.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

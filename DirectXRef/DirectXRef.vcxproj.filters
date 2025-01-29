@@ -27,7 +27,16 @@
     <ClCompile Include="..\Asserts\Common\MathHelper.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="main6L.cpp">
+    <ClCompile Include="..\Asserts\Common\GeometryGenerator.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="main7\Waves\FrameResource.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="main7\Waves\LandAndWavesApp.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="main7\Waves\Waves.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
@@ -48,6 +57,15 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="..\Asserts\Common\UploadBuffer.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="..\Asserts\Common\GeometryGenerator.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="main7\Waves\FrameResource.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="main7\Waves\Waves.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

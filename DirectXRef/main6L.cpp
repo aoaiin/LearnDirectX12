@@ -519,8 +519,8 @@ void BoxApp::BuildShadersAndInputLayout()
     HRESULT hr = S_OK;
 
     // 编译Shader
-    mvsByteCode = d3dUtil::CompileShader(L"Shaders\\color.hlsl", nullptr, "VS", "vs_5_0");
-    mpsByteCode = d3dUtil::CompileShader(L"Shaders\\color.hlsl", nullptr, "PS", "ps_5_0");
+    mvsByteCode = d3dUtil::CompileShader(L"Shaders\\color6.hlsl", nullptr, "VS", "vs_5_0");
+    mpsByteCode = d3dUtil::CompileShader(L"Shaders\\color6.hlsl", nullptr, "PS", "ps_5_0");
 
     // 对Vertex结构体中的Pos和Color做了具体的描述
     // 向DX提供该顶点结构体的描述，使它了解应该怎样处理结构体中的每个成员
