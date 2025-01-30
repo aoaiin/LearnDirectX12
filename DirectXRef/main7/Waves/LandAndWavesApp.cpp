@@ -107,7 +107,8 @@ private:
 
 	std::vector<D3D12_INPUT_ELEMENT_DESC> mInputLayout;
 
-	RenderItem* mWavesRitem = nullptr;
+	//wave的渲染项（创建时复制一份保存）
+	RenderItem* mWavesRitem = nullptr;	
 
 	// List of all the render items.
 	std::vector<std::unique_ptr<RenderItem>> mAllRitems;
@@ -183,7 +184,7 @@ bool LandAndWavesApp::Initialize()
     BuildShadersAndInputLayout();
 	BuildLandGeometry();
     BuildWavesGeometryBuffers();
-    BuildRenderItems();
+    //BuildRenderItems();
 	BuildRenderItems();
     BuildFrameResources();
 	BuildPSOs();
@@ -267,11 +268,16 @@ void LandAndWavesApp::Draw(const GameTimer& gt)
 
 	mCommandList->SetGraphicsRootSignature(mRootSignature.Get());
 
+
+	// 设置passCB的根描述符
+	//
     // Bind per-pass constant buffer.  We only need to do this once per-pass.
 	auto passCB = mCurrFrameResource->PassCB->Resource();
-	mCommandList->SetGraphicsRootConstantBufferView(1, passCB->GetGPUVirtualAddress());
+	mCommandList->SetGraphicsRootConstantBufferView(1, passCB->GetGPUVirtualAddress());	// 要将根参数索引设为1，因为passCB绑定在寄存器b1上
+
 
 	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Opaque]);
+
 
 	// Indicate a state transition on the resource usage.
 	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
@@ -288,9 +294,9 @@ void LandAndWavesApp::Draw(const GameTimer& gt)
 	ThrowIfFailed(mSwapChain->Present(0, 0));
 	mCurrBackBuffer = (mCurrBackBuffer + 1) % SwapChainBufferCount;
 
+
 	// Advance the fence value to mark commands up to this fence point.
 	mCurrFrameResource->Fence = ++mCurrentFence;
-
 	// Add an instruction to the command queue to set a new fence point. 
     // Because we are on the GPU timeline, the new fence point won't be 
     // set until the GPU finishes processing all the commands prior to this Signal().
@@ -422,32 +428,31 @@ void LandAndWavesApp::UpdateWaves(const GameTimer& gt)
 	static float t_base = 0.0f;
 	if((mTimer.TotalTime() - t_base) >= 0.25f)
 	{
-		t_base += 0.25f;
+		t_base += 0.25f; //0.25秒生成一个波浪
 
 		int i = MathHelper::Rand(4, mWaves->RowCount() - 5);
 		int j = MathHelper::Rand(4, mWaves->ColumnCount() - 5);
 
 		float r = MathHelper::RandF(0.2f, 0.5f);
 
-		mWaves->Disturb(i, j, r);
+		mWaves->Disturb(i, j, r);	//使用波动方程函数生成波纹
 	}
 
 	// Update the wave simulation.
-	mWaves->Update(gt.DeltaTime());
+	mWaves->Update(gt.DeltaTime()); //每帧更新波浪模拟（即更新顶点坐标）
 
 	// Update the wave vertex buffer with the new solution.
 	auto currWavesVB = mCurrFrameResource->WavesVB.get();
 	for(int i = 0; i < mWaves->VertexCount(); ++i)
 	{
 		Vertex v;
-
 		v.Pos = mWaves->Position(i);
         v.Color = XMFLOAT4(DirectX::Colors::Blue);
-
-		currWavesVB->CopyData(i, v);
+		currWavesVB->CopyData(i, v);				//将更新的顶点坐标存入GPU上传堆中
 	}
 
 	// Set the dynamic VB of the wave renderitem to the current frame VB.
+	// 赋值湖泊的GPU上的顶点缓存
 	mWavesRitem->Geo->VertexBufferGPU = currWavesVB->Resource();
 }
 
@@ -505,12 +510,12 @@ void LandAndWavesApp::BuildLandGeometry()
 	// sandy looking beaches, grassy low hills, and snow mountain peaks.
 	//
 
-	std::vector<Vertex> vertices(grid.Vertices.size());
+	std::vector<Vertex> vertices(grid.Vertices.size());	// 顶点数组
 	for(size_t i = 0; i < grid.Vertices.size(); ++i)
 	{
 		auto& p = grid.Vertices[i].Position;
 		vertices[i].Pos = p;
-		vertices[i].Pos.y = GetHillsHeight(p.x, p.z);
+		vertices[i].Pos.y = GetHillsHeight(p.x, p.z);	// 根据xz坐标，生成震荡的y坐标
 
         // Color the vertex based on its height.
         if(vertices[i].Pos.y < -10.0f)
@@ -548,13 +553,13 @@ void LandAndWavesApp::BuildLandGeometry()
 	auto geo = std::make_unique<MeshGeometry>();
 	geo->Name = "landGeo";
 
-	ThrowIfFailed(D3DCreateBlob(vbByteSize, &geo->VertexBufferCPU));
-	CopyMemory(geo->VertexBufferCPU->GetBufferPointer(), vertices.data(), vbByteSize);
+	ThrowIfFailed(D3DCreateBlob(vbByteSize, &geo->VertexBufferCPU));	//创建顶点 内存空间
+	CopyMemory(geo->VertexBufferCPU->GetBufferPointer(), vertices.data(), vbByteSize);	//将顶点数据拷贝至 顶点 系统内存中
 
 	ThrowIfFailed(D3DCreateBlob(ibByteSize, &geo->IndexBufferCPU));
 	CopyMemory(geo->IndexBufferCPU->GetBufferPointer(), indices.data(), ibByteSize);
 
-	geo->VertexBufferGPU = d3dUtil::CreateDefaultBuffer(md3dDevice.Get(),
+	geo->VertexBufferGPU = d3dUtil::CreateDefaultBuffer(md3dDevice.Get(),	// 创建 上传堆/默认堆 顶点缓冲区 ，将顶点数据拷贝至默认堆
 		mCommandList.Get(), vertices.data(), vbByteSize, geo->VertexBufferUploader);
 
 	geo->IndexBufferGPU = d3dUtil::CreateDefaultBuffer(md3dDevice.Get(),
@@ -575,8 +580,9 @@ void LandAndWavesApp::BuildLandGeometry()
 	mGeometries["landGeo"] = std::move(geo);
 }
 
-void LandAndWavesApp::BuildWavesGeometryBuffers()
+void LandAndWavesApp::BuildWavesGeometryBuffers()	//波动只是顶点坐标的改变，并不会改变顶点的索引
 {
+	//初始化索引列表（每个三角形3个索引）
 	std::vector<std::uint16_t> indices(3 * mWaves->TriangleCount()); // 3 indices per face
 	assert(mWaves->VertexCount() < 0x0000ffff);
 
@@ -692,13 +698,13 @@ void LandAndWavesApp::BuildRenderItems()
 	wavesRitem->StartIndexLocation = wavesRitem->Geo->DrawArgs["grid"].StartIndexLocation;
 	wavesRitem->BaseVertexLocation = wavesRitem->Geo->DrawArgs["grid"].BaseVertexLocation;
 
-	mWavesRitem = wavesRitem.get();
+	mWavesRitem = wavesRitem.get(); // 复制一份 wave的渲染项，之后需要更新顶点数据
 
 	mRitemLayer[(int)RenderLayer::Opaque].push_back(wavesRitem.get());
 
 	auto gridRitem = std::make_unique<RenderItem>();
 	gridRitem->World = MathHelper::Identity4x4();
-	gridRitem->ObjCBIndex = 1;
+	gridRitem->ObjCBIndex = 1;		// 第二个物体
 	gridRitem->Geo = mGeometries["landGeo"].get();
 	gridRitem->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 	gridRitem->IndexCount = gridRitem->Geo->DrawArgs["grid"].IndexCount;
@@ -715,9 +721,9 @@ void LandAndWavesApp::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const 
 {
 	UINT objCBByteSize = d3dUtil::CalcConstantBufferByteSize(sizeof(ObjectConstants));
 
-	auto objectCB = mCurrFrameResource->ObjectCB->Resource();
+	auto objectCB = mCurrFrameResource->ObjectCB->Resource();	// 当前帧的 上传堆/常量缓冲区 资源
 
-	// For each render item...
+	// For each render item... 遍历每一个 渲染项/物体
 	for(size_t i = 0; i < ritems.size(); ++i)
 	{
 		auto ri = ritems[i];
@@ -729,7 +735,11 @@ void LandAndWavesApp::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const 
         D3D12_GPU_VIRTUAL_ADDRESS objCBAddress = objectCB->GetGPUVirtualAddress();
         objCBAddress += ri->ObjCBIndex*objCBByteSize;
 
-		cmdList->SetGraphicsRootConstantBufferView(0, objCBAddress);
+		// 在绘制前设置objCB的根描述符，将CBV与资源绑定
+		// 
+		// 设置 根参数0 为 根描述符 ，而不是描述符表
+		//   第二个参数是子资源的地址（常量缓冲区中的数据/根据地址偏移），这样绑定十分的方便
+		cmdList->SetGraphicsRootConstantBufferView(0, objCBAddress);	// 寄存器槽号，子资源地址
 
 		cmdList->DrawIndexedInstanced(ri->IndexCount, 1, ri->StartIndexLocation, ri->BaseVertexLocation, 0);
 	}

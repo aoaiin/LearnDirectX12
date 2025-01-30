@@ -167,14 +167,15 @@ struct MeshGeometry
 	// System memory copies.  Use Blobs because the vertex/index format can be generic.
 	// It is up to the client to cast appropriately.  
     // 系统变量内存的复制样本。我们使用Blob因为vertex/index可以用自定义结构体声明
-	Microsoft::WRL::ComPtr<ID3DBlob> VertexBufferCPU = nullptr;
+    // **CPU系统内存上的 顶点/索引 数据
+	Microsoft::WRL::ComPtr<ID3DBlob> VertexBufferCPU = nullptr;     
 	Microsoft::WRL::ComPtr<ID3DBlob> IndexBufferCPU  = nullptr;
 
-    // 上传到GPU的顶点/索引资源
-	Microsoft::WRL::ComPtr<ID3D12Resource> VertexBufferGPU = nullptr;
-	Microsoft::WRL::ComPtr<ID3D12Resource> IndexBufferGPU = nullptr;
+    // GPU 默认堆中 的顶点/索引 缓冲区资源
+	Microsoft::WRL::ComPtr<ID3D12Resource> VertexBufferGPU = nullptr;   //GPU默认堆中的 顶点缓冲区（最终的GPU顶点缓冲区）
+	Microsoft::WRL::ComPtr<ID3D12Resource> IndexBufferGPU = nullptr;    //GPU默认堆中的 索引缓冲区（最终的GPU索引缓冲区）
 
-    // 顶点/索引的上传堆资源
+    // GPU 上传堆中 的顶点/索引 缓冲区资源
 	Microsoft::WRL::ComPtr<ID3D12Resource> VertexBufferUploader = nullptr;
 	Microsoft::WRL::ComPtr<ID3D12Resource> IndexBufferUploader = nullptr;
 
@@ -212,9 +213,9 @@ struct MeshGeometry
 	D3D12_VERTEX_BUFFER_VIEW VertexBufferView()const
 	{
 		D3D12_VERTEX_BUFFER_VIEW vbv;
-		vbv.BufferLocation = VertexBufferGPU->GetGPUVirtualAddress();
-		vbv.StrideInBytes = VertexByteStride;
-		vbv.SizeInBytes = VertexBufferByteSize;
+		vbv.BufferLocation = VertexBufferGPU->GetGPUVirtualAddress();// 顶点缓冲区资源虚拟地址
+		vbv.StrideInBytes = VertexByteStride;   // 顶点缓冲区大小（所有顶点数据大小）
+		vbv.SizeInBytes = VertexBufferByteSize; // 每个顶点元素占用的字节数
 
 		return vbv;
 	}
@@ -247,6 +248,7 @@ struct MeshGeometry
 	}
 
 	// We can free this memory after we finish upload to the GPU.  在将数据上传到GPU后释放掉上传堆的内存
+    // 等上传堆资源传至默认堆后,释放上传堆里的内存
 	void DisposeUploaders()
 	{
 		VertexBufferUploader = nullptr;

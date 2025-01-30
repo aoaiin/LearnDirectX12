@@ -34,11 +34,11 @@ Waves::Waves(int m, int n, float dx, float dt, float speed, float damping)
 
     // Generate grid vertices in system memory.
 
-    float halfWidth = (n - 1)*dx*0.5f;
+    float halfWidth = (n - 1)*dx*0.5f;		// 网格的 一半大小
     float halfDepth = (m - 1)*dx*0.5f;
-    for(int i = 0; i < m; ++i)
+    for(int i = 0; i < m; ++i)				// m行n列的网格，网格是 xz 坐标
     {
-        float z = halfDepth - i*dx;
+        float z = halfDepth - i*dx;			
         for(int j = 0; j < n; ++j)
         {
             float x = -halfWidth + j*dx;
@@ -90,13 +90,13 @@ void Waves::Update(float dt)
 	static float t = 0;
 
 	// Accumulate time.
-	t += dt;
+	t += dt;			// 传入 globalTimer 的 delta T ，进行累加
 
 	// Only update the simulation at the specified time step.
-	if( t >= mTimeStep )
+	if( t >= mTimeStep )	// 累计经过的时间 大于 wave时间步长 delta t
 	{
 		// Only update interior points; we use zero boundary conditions.
-		concurrency::parallel_for(1, mNumRows - 1, [this](int i)
+		concurrency::parallel_for(1, mNumRows - 1, [this](int i)			// 从1到mNumRows - 1上的点，使用parallelfor进行遍历
 		//for(int i = 1; i < mNumRows-1; ++i)
 		{
 			for(int j = 1; j < mNumCols-1; ++j)
@@ -104,13 +104,13 @@ void Waves::Update(float dt)
 				// After this update we will be discarding the old previous
 				// buffer, so overwrite that buffer with the new update.
 				// Note how we can do this inplace (read/write to same element) 
-				// because we won't need prev_ij again and the assignment happens last.
+				// because we won't need prev_ij again and the assignment happens last.		// 可以直接在 prev上修改，然后交换 current和prev
 
 				// Note j indexes x and i indexes z: h(x_j, z_i, t_k)
 				// Moreover, our +z axis goes "down"; this is just to 
 				// keep consistent with our row indices going down.
 
-				mPrevSolution[i*mNumCols+j].y = 
+				mPrevSolution[i*mNumCols+j].y =					// 计算当前这个点的 y 升降
 					mK1*mPrevSolution[i*mNumCols+j].y +
 					mK2*mCurrSolution[i*mNumCols+j].y +
 					mK3*(mCurrSolution[(i+1)*mNumCols+j].y + 
@@ -123,14 +123,14 @@ void Waves::Update(float dt)
 		// We just overwrote the previous buffer with the new data, so
 		// this data needs to become the current solution and the old
 		// current solution becomes the new previous solution.
-		std::swap(mPrevSolution, mCurrSolution);
+		std::swap(mPrevSolution, mCurrSolution);				// 刚才是直接在 旧/前 顶点数据上计算，这样再交换一下，这个旧的就是新的，current就是prev
 
 		t = 0.0f; // reset time
 
 		//
 		// Compute normals using finite difference scheme.
 		//
-		concurrency::parallel_for(1, mNumRows - 1, [this](int i)
+		concurrency::parallel_for(1, mNumRows - 1, [this](int i)		// 同样的遍历，计算 顶点的法线和切线
 		//for(int i = 1; i < mNumRows - 1; ++i)
 		{
 			for(int j = 1; j < mNumCols-1; ++j)
@@ -163,8 +163,8 @@ void Waves::Disturb(int i, int j, float magnitude)
 	float halfMag = 0.5f*magnitude;
 
 	// Disturb the ijth vertex height and its neighbors.
-	mCurrSolution[i*mNumCols+j].y     += magnitude;
-	mCurrSolution[i*mNumCols+j+1].y   += halfMag;
+	mCurrSolution[i*mNumCols+j].y     += magnitude;		// 第 i 行 j 列的高度 y增加 magnitude
+	mCurrSolution[i*mNumCols+j+1].y   += halfMag;		// 四周的其他点 增加  halfMag = 0.5f*magnitude
 	mCurrSolution[i*mNumCols+j-1].y   += halfMag;
 	mCurrSolution[(i+1)*mNumCols+j].y += halfMag;
 	mCurrSolution[(i-1)*mNumCols+j].y += halfMag;

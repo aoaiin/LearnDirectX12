@@ -146,8 +146,8 @@
     <ClCompile Include="..\Asserts\Common\GameTimer.cpp" />
     <ClCompile Include="..\Asserts\Common\GeometryGenerator.cpp" />
     <ClCompile Include="..\Asserts\Common\MathHelper.cpp" />
-    <ClCompile Include="main7\Waves\FrameResource.cpp" />
-    <ClCompile Include="main7\Waves\LandAndWavesApp.cpp" />
+    <ClCompile Include="main7\Shapes\FrameResource.cpp" />
+    <ClCompile Include="main7\Shapes\main7L.cpp" />
     <ClCompile Include="main7\Waves\Waves.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -158,7 +158,7 @@
     <ClInclude Include="..\Asserts\Common\GeometryGenerator.h" />
     <ClInclude Include="..\Asserts\Common\MathHelper.h" />
     <ClInclude Include="..\Asserts\Common\UploadBuffer.h" />
-    <ClInclude Include="main7\Waves\FrameResource.h" />
+    <ClInclude Include="main7\Shapes\FrameResource.h" />
     <ClInclude Include="main7\Waves\Waves.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
