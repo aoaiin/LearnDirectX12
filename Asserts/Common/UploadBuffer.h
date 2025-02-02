@@ -53,7 +53,8 @@ public:
         return mUploadBuffer.Get();
     }
 
-    void CopyData(int elementIndex, const T& data)  // 更新数据：将 数据 拷贝到 上传堆
+    // 更新数据：将 数据 拷贝到 系统内存（与 上传堆 相映射的）
+    void CopyData(int elementIndex, const T& data)  
     {
         memcpy(&mMappedData[elementIndex*mElementByteSize], &data, sizeof(T));
     }

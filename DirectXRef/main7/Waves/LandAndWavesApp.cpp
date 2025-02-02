@@ -243,9 +243,11 @@ void LandAndWavesApp::Draw(const GameTimer& gt)
 
 	// A command list can be reset after it has been added to the command queue via ExecuteCommandList.
 	// Reusing the command list reuses memory.
+	// 
+	// 根据 参数，重置命令列表时，使用不同的cmdlistAlloc、PSO
     if(mIsWireframe)
     {
-        ThrowIfFailed(mCommandList->Reset(cmdListAlloc.Get(), mPSOs["opaque_wireframe"].Get()));
+        ThrowIfFailed(mCommandList->Reset(cmdListAlloc.Get(), mPSOs["opaque_wireframe"].Get()));	
     }
     else
     {

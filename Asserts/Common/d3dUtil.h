@@ -256,8 +256,8 @@ struct MeshGeometry
 	}
 };
 
-struct Light
-{
+struct Light    // 各种光源的属性
+{   
     DirectX::XMFLOAT3 Strength = { 0.5f, 0.5f, 0.5f };
     float FalloffStart = 1.0f;                          // point/spot light only
     DirectX::XMFLOAT3 Direction = { 0.0f, -1.0f, 0.0f };// directional/spot light only
@@ -268,11 +268,11 @@ struct Light
 
 #define MaxLights 16
 
-struct MaterialConstants
+struct MaterialConstants    // 材质属性（从 材质中提取出来）
 {
-	DirectX::XMFLOAT4 DiffuseAlbedo = { 1.0f, 1.0f, 1.0f, 1.0f };
-	DirectX::XMFLOAT3 FresnelR0 = { 0.01f, 0.01f, 0.01f };
-	float Roughness = 0.25f;
+	DirectX::XMFLOAT4 DiffuseAlbedo = { 1.0f, 1.0f, 1.0f, 1.0f };   // 漫反射/材质 的 颜色/反射率
+	DirectX::XMFLOAT3 FresnelR0 = { 0.01f, 0.01f, 0.01f };    // 菲涅尔
+	float Roughness = 0.25f;    // 粗糙度
 
 	// Used in texture mapping.
 	DirectX::XMFLOAT4X4 MatTransform = MathHelper::Identity4x4();
@@ -300,7 +300,9 @@ struct Material
 	// NumFramesDirty = gNumFrameResources so that each frame resource gets the update.
 	int NumFramesDirty = gNumFrameResources;
 
-	// Material constant buffer data used for shading.
+
+	// Material constant buffer data used for shading.  
+    // 将 这些属性提取出来，放到MaterialConstants中，用于着色
 	DirectX::XMFLOAT4 DiffuseAlbedo = { 1.0f, 1.0f, 1.0f, 1.0f };
 	DirectX::XMFLOAT3 FresnelR0 = { 0.01f, 0.01f, 0.01f };
 	float Roughness = .25f;
