@@ -141,25 +141,29 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\Asserts\Common\Camera.cpp" />
     <ClCompile Include="..\Asserts\Common\d3dApp.cpp" />
     <ClCompile Include="..\Asserts\Common\d3dUtil.cpp" />
+    <ClCompile Include="..\Asserts\Common\DDSTextureLoader.cpp" />
     <ClCompile Include="..\Asserts\Common\GameTimer.cpp" />
     <ClCompile Include="..\Asserts\Common\GeometryGenerator.cpp" />
     <ClCompile Include="..\Asserts\Common\MathHelper.cpp" />
-    <ClCompile Include="main8\LitWaves\FrameResource.cpp" />
-    <ClCompile Include="main8\LitWaves\main8L.cpp" />
-    <ClCompile Include="main8\LitWaves\Waves.cpp" />
+    <ClCompile Include="main9\TexColumns\FrameResource.cpp" />
+    <ClCompile Include="main9\TexColumns\TexColumnsApp.cpp" />
+    <ClCompile Include="main9\TexWaves\Waves.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\Asserts\Common\Camera.h" />
     <ClInclude Include="..\Asserts\Common\d3dApp.h" />
     <ClInclude Include="..\Asserts\Common\d3dUtil.h" />
     <ClInclude Include="..\Asserts\Common\d3dx12.h" />
+    <ClInclude Include="..\Asserts\Common\DDSTextureLoader.h" />
     <ClInclude Include="..\Asserts\Common\GameTimer.h" />
     <ClInclude Include="..\Asserts\Common\GeometryGenerator.h" />
     <ClInclude Include="..\Asserts\Common\MathHelper.h" />
     <ClInclude Include="..\Asserts\Common\UploadBuffer.h" />
-    <ClInclude Include="main8\LitWaves\FrameResource.h" />
-    <ClInclude Include="main8\LitWaves\Waves.h" />
+    <ClInclude Include="main9\TexColumns\FrameResource.h" />
+    <ClInclude Include="main9\TexWaves\Waves.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

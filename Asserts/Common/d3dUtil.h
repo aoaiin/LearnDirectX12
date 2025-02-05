@@ -288,7 +288,7 @@ struct Material
 	// Index into constant buffer corresponding to this material.
 	int MatCBIndex = -1;
 
-	// Index into SRV heap for diffuse texture.
+	// Index into SRV heap for diffuse **texture**.  之后加载了 Texture，就是纹理的索引
 	int DiffuseSrvHeapIndex = -1;
 
 	// Index into SRV heap for normal texture.
@@ -306,18 +306,18 @@ struct Material
 	DirectX::XMFLOAT4 DiffuseAlbedo = { 1.0f, 1.0f, 1.0f, 1.0f };
 	DirectX::XMFLOAT3 FresnelR0 = { 0.01f, 0.01f, 0.01f };
 	float Roughness = .25f;
-	DirectX::XMFLOAT4X4 MatTransform = MathHelper::Identity4x4();
+	DirectX::XMFLOAT4X4 MatTransform = MathHelper::Identity4x4();   // 材质 的变换矩阵（物体的）
 };
 
 struct Texture
 {
 	// Unique material name for lookup.
-	std::string Name;
+	std::string Name;   // 纹理的名称
 
-	std::wstring Filename;
+	std::wstring Filename;  // 纹理所在路径的目录名
 
-	Microsoft::WRL::ComPtr<ID3D12Resource> Resource = nullptr;
-	Microsoft::WRL::ComPtr<ID3D12Resource> UploadHeap = nullptr;
+	Microsoft::WRL::ComPtr<ID3D12Resource> Resource = nullptr;  // 纹理最后能让GPU访问的资源（资源=存储空间）
+	Microsoft::WRL::ComPtr<ID3D12Resource> UploadHeap = nullptr;// 上传堆
 };
 
 #ifndef ThrowIfFailed
