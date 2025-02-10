@@ -30,19 +30,19 @@
     <ClCompile Include="..\Asserts\Common\GeometryGenerator.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="main9\TexWaves\Waves.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="..\Asserts\Common\Camera.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="..\Asserts\Common\DDSTextureLoader.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="main9\TexColumns\FrameResource.cpp">
+    <ClCompile Include="main10\FrameResource.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="main9\TexColumns\TexColumnsApp.cpp">
+    <ClCompile Include="main10\Waves.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="main10\main10L.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
@@ -68,16 +68,16 @@
     <ClInclude Include="..\Asserts\Common\GeometryGenerator.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="main9\TexWaves\Waves.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="..\Asserts\Common\Camera.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="..\Asserts\Common\DDSTextureLoader.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="main9\TexColumns\FrameResource.h">
+    <ClInclude Include="main10\FrameResource.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="main10\Waves.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
