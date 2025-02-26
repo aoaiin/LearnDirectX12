@@ -56,6 +56,7 @@ public:
     // 更新数据：将 数据 拷贝到 系统内存（与 上传堆 相映射的）
     void CopyData(int elementIndex, const T& data)  
     {
+        // 根据 index ，将物体的数据 放入全局的常量缓冲区
         memcpy(&mMappedData[elementIndex*mElementByteSize], &data, sizeof(T));
     }
 

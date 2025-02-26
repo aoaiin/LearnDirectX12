@@ -426,6 +426,7 @@ void BlendApp::AnimateMaterials(const GameTimer& gt)
 
 void BlendApp::UpdateObjectCBs(const GameTimer& gt)
 {
+	// 将渲染项 中的物体的 常量数据，更新到 帧资源的 CB中（GPU）
 	auto currObjectCB = mCurrFrameResource->ObjectCB.get();
 	for(auto& e : mAllRitems)
 	{

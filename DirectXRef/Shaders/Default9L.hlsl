@@ -106,9 +106,10 @@ VertexOut VS(VertexIn vin)
 	//vout.TexC = mul(texC, gMatTransform).xy;                        // 材质 变换
 
     vin.TexC -= float2(0.5f, 0.5f); // 将UV取值范围改为[-0.5, 0.5]
-    float4 texC = mul(float4(vin.TexC, 0.0f, 1.0f), gTexTransform);// 乘以UV **初始**偏移
+    float4 texC = mul(float4(vin.TexC, 0.0f, 1.0f), gTexTransform);// 乘以UV **初始**偏移/缩放
     vout.TexC = mul(texC, gMatTransform).xy;// 乘以UV 动画偏移
     vout.TexC += float2(0.5f, 0.5f);// 将UV取值范围改为[0, 1]
+    //vout.TexC += float2(0.4f, 0.4f); // 查看一下 物体的uv坐标
 	
     return vout;
 }

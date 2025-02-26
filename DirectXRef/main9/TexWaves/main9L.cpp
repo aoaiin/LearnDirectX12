@@ -406,7 +406,7 @@ void TexWavesApp::AnimateMaterials(const GameTimer& gt)
 
 	// 获取 box的材质，并取更新 材质的 变换矩阵
 	auto BoxMat = mMaterials["wirefence"].get();
-	XMStoreFloat4x4(&BoxMat->MatTransform, XMMatrixRotationZ(gt.TotalTime()));
+	XMStoreFloat4x4(&BoxMat->MatTransform, XMMatrixRotationZ(0 * gt.TotalTime()));
 	BoxMat->NumFramesDirty = gNumFrameResources;
 }
 
