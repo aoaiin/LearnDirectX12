@@ -42,7 +42,7 @@
     <ClCompile Include="main10\Waves.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="main10\main10L.cpp">
+    <ClCompile Include="main9\TexWaves\main9L.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

@@ -71,7 +71,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>D:\Learning\Direct3D\LearnDirectX12\Asserts\Common;$(IncludePath)</IncludePath>
+    <IncludePath>D:\学习\LearnDirectX12\Asserts\Common;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>D:\Learning\Direct3D\LearnDirectX12\Asserts\Common;$(IncludePath)</IncludePath>
@@ -149,8 +149,8 @@
     <ClCompile Include="..\Asserts\Common\GeometryGenerator.cpp" />
     <ClCompile Include="..\Asserts\Common\MathHelper.cpp" />
     <ClCompile Include="main10\FrameResource.cpp" />
-    <ClCompile Include="main10\main10L.cpp" />
     <ClCompile Include="main10\Waves.cpp" />
+    <ClCompile Include="main9\TexWaves\main9L.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Asserts\Common\Camera.h" />

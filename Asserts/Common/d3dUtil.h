@@ -166,8 +166,9 @@ struct MeshGeometry
 
 	// System memory copies.  Use Blobs because the vertex/index format can be generic.
 	// It is up to the client to cast appropriately.  
-    // 系统变量内存的复制样本。我们使用Blob因为vertex/index可以用自定义结构体声明
+    // 系统变量内存的 (复制样本) 。我们使用Blob因为vertex/index可以用自定义结构体声明
     // **CPU系统内存上的 顶点/索引 数据
+    // ** 一般作为 副本，可以看到下面 View取地址，取的都是GPU端的缓冲区（因为要具体执行）
 	Microsoft::WRL::ComPtr<ID3DBlob> VertexBufferCPU = nullptr;     
 	Microsoft::WRL::ComPtr<ID3DBlob> IndexBufferCPU  = nullptr;
 
@@ -268,13 +269,16 @@ struct Light    // 各种光源的属性
 
 #define MaxLights 16
 
-struct MaterialConstants    // 材质属性（从 材质中提取出来）
+struct MaterialConstants    // 材质属性（从 材质中提取出来 :传入constantBuffer的数据 ）
 {
 	DirectX::XMFLOAT4 DiffuseAlbedo = { 1.0f, 1.0f, 1.0f, 1.0f };   // 漫反射/材质 的 颜色/反射率
 	DirectX::XMFLOAT3 FresnelR0 = { 0.01f, 0.01f, 0.01f };    // 菲涅尔
 	float Roughness = 0.25f;    // 粗糙度
 
 	// Used in texture mapping.
+    // 用于 物体的材质变化（实际上就是uv贴图变换）
+    // ObjectConstants 中的 TexTrans ：是将贴图 贴到物体上的变换
+    // 这个 Mat 是 **对贴图本身的变化/不同的采样** （更新材质的纹理 本身）
 	DirectX::XMFLOAT4X4 MatTransform = MathHelper::Identity4x4();
 };
 

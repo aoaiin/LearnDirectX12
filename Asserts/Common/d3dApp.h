@@ -96,7 +96,7 @@ protected:
     Microsoft::WRL::ComPtr<IDXGISwapChain> mSwapChain;
     Microsoft::WRL::ComPtr<ID3D12Device> md3dDevice;
 
-    Microsoft::WRL::ComPtr<ID3D12Fence> mFence;
+    Microsoft::WRL::ComPtr<ID3D12Fence> mFence; // gpu端的fence
     UINT64 mCurrentFence = 0;
 	
     Microsoft::WRL::ComPtr<ID3D12CommandQueue> mCommandQueue;
