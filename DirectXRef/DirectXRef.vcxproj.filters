@@ -36,13 +36,13 @@
     <ClCompile Include="..\Asserts\Common\DDSTextureLoader.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="main10\FrameResource.cpp">
+    <ClCompile Include="main11\L\Waves.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="main10\Waves.cpp">
+    <ClCompile Include="main11\FrameResource.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="main9\TexWaves\main9L.cpp">
+    <ClCompile Include="main11\main11L.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
@@ -74,10 +74,10 @@
     <ClInclude Include="..\Asserts\Common\DDSTextureLoader.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="main10\FrameResource.h">
+    <ClInclude Include="main11\L\Waves.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="main10\Waves.h">
+    <ClInclude Include="main11\FrameResource.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
