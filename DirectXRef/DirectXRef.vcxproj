@@ -148,9 +148,9 @@
     <ClCompile Include="..\Asserts\Common\GameTimer.cpp" />
     <ClCompile Include="..\Asserts\Common\GeometryGenerator.cpp" />
     <ClCompile Include="..\Asserts\Common\MathHelper.cpp" />
-    <ClCompile Include="main11\FrameResource.cpp" />
-    <ClCompile Include="main11\L\Waves.cpp" />
-    <ClCompile Include="main11\main11L.cpp" />
+    <ClCompile Include="main12\FrameResource.cpp" />
+    <ClCompile Include="main12\main12xifen.cpp" />
+    <ClCompile Include="main12\Waves.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Asserts\Common\Camera.h" />
@@ -162,8 +162,8 @@
     <ClInclude Include="..\Asserts\Common\GeometryGenerator.h" />
     <ClInclude Include="..\Asserts\Common\MathHelper.h" />
     <ClInclude Include="..\Asserts\Common\UploadBuffer.h" />
-    <ClInclude Include="main11\FrameResource.h" />
-    <ClInclude Include="main11\L\Waves.h" />
+    <ClInclude Include="main12\FrameResource.h" />
+    <ClInclude Include="main12\Waves.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
