@@ -36,13 +36,16 @@
     <ClCompile Include="..\Asserts\Common\DDSTextureLoader.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="main12\Waves.cpp">
+    <ClCompile Include="main13\BlurFilter.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="main12\FrameResource.cpp">
+    <ClCompile Include="main13\Waves.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="main12\main12xifen.cpp">
+    <ClCompile Include="main14\BezierPatch\BezierPatchApp.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="main14\BezierPatch\FrameResource.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
@@ -74,10 +77,13 @@
     <ClInclude Include="..\Asserts\Common\DDSTextureLoader.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="main12\Waves.h">
+    <ClInclude Include="main13\BlurFilter.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="main12\FrameResource.h">
+    <ClInclude Include="main13\Waves.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="main14\BezierPatch\FrameResource.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>
