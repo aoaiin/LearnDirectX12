@@ -1,6 +1,7 @@
 # 记录一下 学习 DirectX12 的代码
 
 > 笔记和习题 记录在 语雀/TA/D3D
+> https://www.yuque.com/yuqueyonghuc94hae/vvitgx/uwyaoliwes9ou2wd
 
 参考以及遇到的问题
 
