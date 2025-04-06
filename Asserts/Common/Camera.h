@@ -47,7 +47,7 @@ public:
 	float GetFarWindowWidth()const;
 	float GetFarWindowHeight()const;
 	
-	// Set frustum.
+	// Set frustum.（4个量就可以确定视锥）
 	void SetLens(float fovY, float aspect, float zn, float zf);
 
 	// Define camera space via LookAt parameters.
@@ -80,7 +80,7 @@ private:
 	DirectX::XMFLOAT3 mUp = { 0.0f, 1.0f, 0.0f };
 	DirectX::XMFLOAT3 mLook = { 0.0f, 0.0f, 1.0f };
 
-	// Cache frustum properties.
+	// Cache frustum properties.	// 一般只需要上面4个就能确定 视锥
 	float mNearZ = 0.0f;
 	float mFarZ = 0.0f;
 	float mAspect = 0.0f;

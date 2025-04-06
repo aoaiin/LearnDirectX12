@@ -182,7 +182,7 @@ void Camera::Strafe(float d)
 	XMVECTOR s = XMVectorReplicate(d);
 	XMVECTOR r = XMLoadFloat3(&mRight);
 	XMVECTOR p = XMLoadFloat3(&mPosition);
-	XMStoreFloat3(&mPosition, XMVectorMultiplyAdd(s, r, p));
+	XMStoreFloat3(&mPosition, XMVectorMultiplyAdd(s, r, p));	// s*r + p (p沿r的方向前进d/s)
 
 	mViewDirty = true;
 }
