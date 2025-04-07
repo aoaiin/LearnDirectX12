@@ -371,6 +371,7 @@ void InstancingAndCullingApp::UpdateInstanceData(const GameTimer& gt)
 	{
 		const auto& instanceData = e->Instances;
 
+		// 记录可见数量
 		int visibleInstanceCount = 0;
 
 		for(UINT i = 0; i < (UINT)instanceData.size(); ++i)
@@ -387,6 +388,8 @@ void InstancingAndCullingApp::UpdateInstanceData(const GameTimer& gt)
 			BoundingFrustum localSpaceFrustum;
 			mCamFrustum.Transform(localSpaceFrustum, viewToLocal);
 
+
+
 			// Perform the box/frustum intersection test in local space.
 			if((localSpaceFrustum.Contains(e->Bounds) != DirectX::DISJOINT) || (mFrustumCullingEnabled==false))
 			{
@@ -400,6 +403,7 @@ void InstancingAndCullingApp::UpdateInstanceData(const GameTimer& gt)
 			}
 		}
 
+		// 设置 绘制渲染项时， 绘制的实例数量
 		e->InstanceCount = visibleInstanceCount;
 
 		std::wostringstream outs;
@@ -961,6 +965,7 @@ void InstancingAndCullingApp::DrawRenderItems(ID3D12GraphicsCommandList* cmdList
 		auto instanceBuffer = mCurrFrameResource->InstanceBuffer->Resource();
 		mCommandList->SetGraphicsRootShaderResourceView(0, instanceBuffer->GetGPUVirtualAddress());
 
+		// 这里 绘制参数： 实例数量可以使用 InstanceCount
         cmdList->DrawIndexedInstanced(ri->IndexCount, ri->InstanceCount, ri->StartIndexLocation, ri->BaseVertexLocation, 0);
     }
 }
