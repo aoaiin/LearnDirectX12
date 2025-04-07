@@ -288,7 +288,7 @@ struct Material
 	// Index into constant buffer corresponding to this material.
 	int MatCBIndex = -1;
 
-	// Index into SRV heap for diffuse **texture**.  之后加载了 Texture，就是纹理的索引
+	// Index into SRV heap for diffuse **texture**.  之后加载了 Texture，就是纹理的索引（纹理描述符SRV在堆中的索引）
 	int DiffuseSrvHeapIndex = -1;
 
 	// Index into SRV heap for normal texture.
