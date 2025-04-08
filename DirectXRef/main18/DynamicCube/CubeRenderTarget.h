@@ -4,8 +4,9 @@
 
 #pragma once
 
-#include "../../Common/d3dUtil.h"
+#include "d3dUtil.h"
 
+// 标记每个面
 enum class CubeMapFace : int
 {
 	PositiveX = 0,

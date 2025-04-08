@@ -50,11 +50,12 @@ void CubeRenderTarget::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuSrv,
 	                                CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuRtv[6])
 {
 	// Save references to the descriptors. 
+	// 暂存 SRV 在描述符堆的句柄 （着色器需要读取cubemap资源：SRV）
 	mhCpuSrv = hCpuSrv;
 	mhGpuSrv = hGpuSrv;
 
 	for(int i = 0; i < 6; ++i)
-		mhCpuRtv[i] = hCpuRtv[i];
+		mhCpuRtv[i] = hCpuRtv[i];	// 暂存RTV在描述符堆的句柄
 
 	//  Create the descriptors
 	BuildDescriptors();
@@ -86,6 +87,8 @@ void CubeRenderTarget::BuildDescriptors()
 
 	// Create SRV to the entire cubemap resource.
 	md3dDevice->CreateShaderResourceView(mCubeMap.Get(), &srvDesc, mhCpuSrv);
+
+
 
 	// Create RTV to each cube face.
 	for(int i = 0; i < 6; ++i)
@@ -121,13 +124,13 @@ void CubeRenderTarget::BuildResource()
 	texDesc.Alignment = 0;
 	texDesc.Width = mWidth;
 	texDesc.Height = mHeight;
-	texDesc.DepthOrArraySize = 6;
+	texDesc.DepthOrArraySize = 6;	// 数组大小：6
 	texDesc.MipLevels = 1;
 	texDesc.Format = mFormat;
 	texDesc.SampleDesc.Count = 1;
 	texDesc.SampleDesc.Quality = 0;
 	texDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
-	texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+	texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;	// 作为RT，上面注释里提到了不能作为UAV
 
 	ThrowIfFailed(md3dDevice->CreateCommittedResource(
 		&CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT),

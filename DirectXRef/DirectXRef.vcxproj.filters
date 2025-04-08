@@ -42,10 +42,13 @@
     <ClCompile Include="main13\Waves.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="main18\Cubemap\CubeMapApp.cpp">
+    <ClCompile Include="main18\DynamicCube\CubeRenderTarget.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="main18\Cubemap\FrameResource.cpp">
+    <ClCompile Include="main19\FrameResource.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="main19\NormalMapApp.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
@@ -83,7 +86,10 @@
     <ClInclude Include="main13\Waves.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="main18\Cubemap\FrameResource.h">
+    <ClInclude Include="main18\DynamicCube\CubeRenderTarget.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="main19\FrameResource.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

@@ -150,8 +150,9 @@
     <ClCompile Include="..\Asserts\Common\MathHelper.cpp" />
     <ClCompile Include="main13\BlurFilter.cpp" />
     <ClCompile Include="main13\Waves.cpp" />
-    <ClCompile Include="main18\Cubemap\CubeMapApp.cpp" />
-    <ClCompile Include="main18\Cubemap\FrameResource.cpp" />
+    <ClCompile Include="main18\DynamicCube\CubeRenderTarget.cpp" />
+    <ClCompile Include="main19\FrameResource.cpp" />
+    <ClCompile Include="main19\NormalMapApp.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\Asserts\Common\Camera.h" />
@@ -165,7 +166,8 @@
     <ClInclude Include="..\Asserts\Common\UploadBuffer.h" />
     <ClInclude Include="main13\BlurFilter.h" />
     <ClInclude Include="main13\Waves.h" />
-    <ClInclude Include="main18\Cubemap\FrameResource.h" />
+    <ClInclude Include="main18\DynamicCube\CubeRenderTarget.h" />
+    <ClInclude Include="main19\FrameResource.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
