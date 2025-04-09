@@ -29,9 +29,10 @@ VertexOut VS(VertexIn vin)
 	float4 posW = mul(float4(vin.PosL, 1.0f), gWorld);
 
 	// Always center sky about camera.
-	posW.xyz += gEyePosW;
+	posW.xyz += gEyePosW;	// 天空球的中心 在 相机上
 
 	// Set z = w so that z/w = 1 (i.e., skydome always on far plane).
+	// 天空球在 最远处 ，齐次裁剪后z=1 -》 投影后的z=w
 	vout.PosH = mul(posW, gViewProj).xyww;
 	
 	return vout;
@@ -39,6 +40,7 @@ VertexOut VS(VertexIn vin)
 
 float4 PS(VertexOut pin) : SV_Target
 {
+	// 采样 cubemap
 	return gCubeMap.Sample(gsamLinearWrap, pin.PosL);
 }
 

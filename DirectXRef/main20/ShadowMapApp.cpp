@@ -2,11 +2,11 @@
 // ShadowMapApp.cpp by Frank Luna (C) 2015 All Rights Reserved.
 //***************************************************************************************
 
-#include "../../Common/d3dApp.h"
-#include "../../Common/MathHelper.h"
-#include "../../Common/UploadBuffer.h"
-#include "../../Common/GeometryGenerator.h"
-#include "../../Common/Camera.h"
+#include "d3dApp.h"
+#include "MathHelper.h"
+#include "UploadBuffer.h"
+#include "GeometryGenerator.h"
+#include "Camera.h"
 #include "FrameResource.h"
 #include "ShadowMap.h"
 
@@ -135,14 +135,15 @@ private:
     CD3DX12_GPU_DESCRIPTOR_HANDLE mNullSrv;
 
     PassConstants mMainPassCB;  // index 0 of pass cbuffer.
-    PassConstants mShadowPassCB;// index 1 of pass cbuffer.
+    PassConstants mShadowPassCB;// index 1 of pass cbuffer. // 用于绘制阴影
 
 	Camera mCamera;
 
     std::unique_ptr<ShadowMap> mShadowMap;
+     
+    DirectX::BoundingSphere mSceneBounds;   // 场景包围球
 
-    DirectX::BoundingSphere mSceneBounds;
-
+    // Shadowmap：
     float mLightNearZ = 0.0f;
     float mLightFarZ = 0.0f;
     XMFLOAT3 mLightPosW;
@@ -151,12 +152,12 @@ private:
     XMFLOAT4X4 mShadowTransform = MathHelper::Identity4x4();
 
     float mLightRotationAngle = 0.0f;
-    XMFLOAT3 mBaseLightDirections[3] = {
-        XMFLOAT3(0.57735f, -0.57735f, 0.57735f),
+    XMFLOAT3 mBaseLightDirections[3] = {            // 三个光 基础方向
+        XMFLOAT3(0.57735f, -0.57735f, 0.57735f),    // 主要用第一个主光 绘制阴影
         XMFLOAT3(-0.57735f, -0.57735f, 0.57735f),
         XMFLOAT3(0.0f, -0.707f, -0.707f)
     };
-    XMFLOAT3 mRotatedLightDirections[3];
+    XMFLOAT3 mRotatedLightDirections[3];            // 旋转后 光源方向
 
     POINT mLastMousePos;
 };
@@ -249,7 +250,7 @@ void ShadowMapApp::CreateRtvAndDsvDescriptorHeaps()
 
     // Add +1 DSV for shadow map.
     D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc;
-    dsvHeapDesc.NumDescriptors = 2;
+    dsvHeapDesc.NumDescriptors = 2;         // shadowmap 只需要多一个深度缓冲区
     dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
     dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
     dsvHeapDesc.NodeMask = 0;
@@ -503,20 +504,21 @@ void ShadowMapApp::UpdateMaterialBuffer(const GameTimer& gt)
 
 void ShadowMapApp::UpdateShadowTransform(const GameTimer& gt)
 {
-    // Only the first "main" light casts a shadow.
+    // 只使用第一个主光，绘制阴影
     XMVECTOR lightDir = XMLoadFloat3(&mRotatedLightDirections[0]);
-    XMVECTOR lightPos = -2.0f*mSceneBounds.Radius*lightDir;
-    XMVECTOR targetPos = XMLoadFloat3(&mSceneBounds.Center);
+    XMVECTOR lightPos = -2.0f*mSceneBounds.Radius*lightDir;     // 光源相机位置 = 光照方向的反方向走2个 场景包围球半径的距离
+    XMVECTOR targetPos = XMLoadFloat3(&mSceneBounds.Center);    // 往场景中心看
     XMVECTOR lightUp = XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
-    XMMATRIX lightView = XMMatrixLookAtLH(lightPos, targetPos, lightUp);
+    XMMATRIX lightView = XMMatrixLookAtLH(lightPos, targetPos, lightUp);    // 光源相机 View矩阵
 
     XMStoreFloat3(&mLightPosW, lightPos);
 
-    // Transform bounding sphere to light space.
+    // 变换到 光源相机空间下
     XMFLOAT3 sphereCenterLS;
     XMStoreFloat3(&sphereCenterLS, XMVector3TransformCoord(targetPos, lightView));
 
     // Ortho frustum in light space encloses scene.
+    //  正交视锥体 的六个面
     float l = sphereCenterLS.x - mSceneBounds.Radius;
     float b = sphereCenterLS.y - mSceneBounds.Radius;
     float n = sphereCenterLS.z - mSceneBounds.Radius;
@@ -526,16 +528,18 @@ void ShadowMapApp::UpdateShadowTransform(const GameTimer& gt)
 
     mLightNearZ = n;
     mLightFarZ = f;
+    // 正交投影（使用ndc）
     XMMATRIX lightProj = XMMatrixOrthographicOffCenterLH(l, r, b, t, n, f);
 
     // Transform NDC space [-1,+1]^2 to texture space [0,1]^2
+    // ndc 变换到 纹理空间 [0,1]^2
     XMMATRIX T(
         0.5f, 0.0f, 0.0f, 0.0f,
         0.0f, -0.5f, 0.0f, 0.0f,
         0.0f, 0.0f, 1.0f, 0.0f,
         0.5f, 0.5f, 0.0f, 1.0f);
 
-    XMMATRIX S = lightView*lightProj*T;
+    XMMATRIX S = lightView*lightProj*T;     // 从世界空间，变换到纹理空间 的阴影变换矩阵
     XMStoreFloat4x4(&mLightView, lightView);
     XMStoreFloat4x4(&mLightProj, lightProj);
     XMStoreFloat4x4(&mShadowTransform, S);
@@ -576,6 +580,8 @@ void ShadowMapApp::UpdateMainPassCB(const GameTimer& gt)
 	mMainPassCB.Lights[2].Strength = { 0.2f, 0.2f, 0.2f };
  
 	auto currPassCB = mCurrFrameResource->PassCB.get();
+
+    //  Mainpass常量 复制到帧资源的 passCB ：0
 	currPassCB->CopyData(0, mMainPassCB);
 }
 
@@ -605,6 +611,8 @@ void ShadowMapApp::UpdateShadowPassCB(const GameTimer& gt)
     mShadowPassCB.FarZ = mLightFarZ;
 
     auto currPassCB = mCurrFrameResource->PassCB.get();
+
+    //  Mainpass常量 复制到帧资源的 passCB ：1
     currPassCB->CopyData(1, mShadowPassCB);
 }
 
@@ -623,13 +631,13 @@ void ShadowMapApp::LoadTextures()
 	
     std::vector<std::wstring> texFilenames =
     {
-        L"../../Textures/bricks2.dds",
-        L"../../Textures/bricks2_nmap.dds",
-        L"../../Textures/tile.dds",
-        L"../../Textures/tile_nmap.dds",
-        L"../../Textures/white1x1.dds",
-        L"../../Textures/default_nmap.dds",
-        L"../../Textures/desertcube1024.dds"
+        L"./Textures/bricks2.dds",
+        L"./Textures/bricks2_nmap.dds",
+        L"./Textures/tile.dds",
+        L"./Textures/tile_nmap.dds",
+        L"./Textures/white1x1.dds",
+        L"./Textures/default_nmap.dds",
+        L"./Textures/desertcube1024.dds"
     };
 	
 	for(int i = 0; i < (int)texNames.size(); ++i)
@@ -648,10 +656,10 @@ void ShadowMapApp::LoadTextures()
 void ShadowMapApp::BuildRootSignature()
 {
 	CD3DX12_DESCRIPTOR_RANGE texTable0;
-	texTable0.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 0, 0);
+	texTable0.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 0, 0);   // t0-space0
 
 	CD3DX12_DESCRIPTOR_RANGE texTable1;
-	texTable1.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 10, 2, 0);
+	texTable1.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 10, 2, 0);// t2 -space0
 
     // Root parameter can be a table, root descriptor or root constants.
     CD3DX12_ROOT_PARAMETER slotRootParameter[5];
@@ -659,7 +667,7 @@ void ShadowMapApp::BuildRootSignature()
 	// Perfomance TIP: Order from most frequent to least frequent.
     slotRootParameter[0].InitAsConstantBufferView(0);
     slotRootParameter[1].InitAsConstantBufferView(1);
-    slotRootParameter[2].InitAsShaderResourceView(0, 1);
+    slotRootParameter[2].InitAsShaderResourceView(0, 1);    // 材质结构缓冲区，t0-space1
 	slotRootParameter[3].InitAsDescriptorTable(1, &texTable0, D3D12_SHADER_VISIBILITY_PIXEL);
 	slotRootParameter[4].InitAsDescriptorTable(1, &texTable1, D3D12_SHADER_VISIBILITY_PIXEL);
 
@@ -734,14 +742,16 @@ void ShadowMapApp::BuildDescriptorHeaps()
 		hDescriptor.Offset(1, mCbvSrvUavDescriptorSize);
 	}
 	
+    // 环境贴图/cubemap
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
 	srvDesc.TextureCube.MostDetailedMip = 0;
 	srvDesc.TextureCube.MipLevels = skyCubeMap->GetDesc().MipLevels;
 	srvDesc.TextureCube.ResourceMinLODClamp = 0.0f;
 	srvDesc.Format = skyCubeMap->GetDesc().Format;
 	md3dDevice->CreateShaderResourceView(skyCubeMap.Get(), &srvDesc, hDescriptor);
-	
+	// 环境贴图在SRV堆的索引
 	mSkyTexHeapIndex = (UINT)tex2DList.size();
+    
     mShadowMapHeapIndex = mSkyTexHeapIndex + 1;
 
     mNullCubeSrvIndex = mShadowMapHeapIndex + 1;
@@ -765,6 +775,7 @@ void ShadowMapApp::BuildDescriptorHeaps()
     srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
     md3dDevice->CreateShaderResourceView(nullptr, &srvDesc, nullSrv);
     
+    // 创建 shadowmap 使用的 srv和dsv （堆的起始，shadow的view在堆中的index）
     mShadowMap->BuildDescriptors(
         CD3DX12_CPU_DESCRIPTOR_HANDLE(srvCpuStart, mShadowMapHeapIndex, mCbvSrvUavDescriptorSize),
         CD3DX12_GPU_DESCRIPTOR_HANDLE(srvGpuStart, mShadowMapHeapIndex, mCbvSrvUavDescriptorSize),
@@ -779,18 +790,18 @@ void ShadowMapApp::BuildShadersAndInputLayout()
 		NULL, NULL
 	};
 
-	mShaders["standardVS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "VS", "vs_5_1");
-	mShaders["opaquePS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "PS", "ps_5_1");
+	mShaders["standardVS"] = d3dUtil::CompileShader(L".\\main20\\Shaders\\Default.hlsl", nullptr, "VS", "vs_5_1");
+	mShaders["opaquePS"] = d3dUtil::CompileShader(L".\\main20\\Shaders\\Default.hlsl", nullptr, "PS", "ps_5_1");
 
-    mShaders["shadowVS"] = d3dUtil::CompileShader(L"Shaders\\Shadows.hlsl", nullptr, "VS", "vs_5_1");
-    mShaders["shadowOpaquePS"] = d3dUtil::CompileShader(L"Shaders\\Shadows.hlsl", nullptr, "PS", "ps_5_1");
-    mShaders["shadowAlphaTestedPS"] = d3dUtil::CompileShader(L"Shaders\\Shadows.hlsl", alphaTestDefines, "PS", "ps_5_1");
+    mShaders["shadowVS"] = d3dUtil::CompileShader(L".\\main20\\Shaders\\Shadows.hlsl", nullptr, "VS", "vs_5_1");
+    mShaders["shadowOpaquePS"] = d3dUtil::CompileShader(L".\\main20\\Shaders\\Shadows.hlsl", nullptr, "PS", "ps_5_1");
+    mShaders["shadowAlphaTestedPS"] = d3dUtil::CompileShader(L".\\main20\\Shaders\\Shadows.hlsl", alphaTestDefines, "PS", "ps_5_1");
 	
-    mShaders["debugVS"] = d3dUtil::CompileShader(L"Shaders\\ShadowDebug.hlsl", nullptr, "VS", "vs_5_1");
-    mShaders["debugPS"] = d3dUtil::CompileShader(L"Shaders\\ShadowDebug.hlsl", nullptr, "PS", "ps_5_1");
+    mShaders["debugVS"] = d3dUtil::CompileShader(L".\\main20\\Shaders\\ShadowDebug.hlsl", nullptr, "VS", "vs_5_1");
+    mShaders["debugPS"] = d3dUtil::CompileShader(L".\\main20\\Shaders\\ShadowDebug.hlsl", nullptr, "PS", "ps_5_1");
 
-	mShaders["skyVS"] = d3dUtil::CompileShader(L"Shaders\\Sky.hlsl", nullptr, "VS", "vs_5_1");
-	mShaders["skyPS"] = d3dUtil::CompileShader(L"Shaders\\Sky.hlsl", nullptr, "PS", "ps_5_1");
+	mShaders["skyVS"] = d3dUtil::CompileShader(L".\\main20\\Shaders\\Sky.hlsl", nullptr, "VS", "vs_5_1");
+	mShaders["skyPS"] = d3dUtil::CompileShader(L".\\main20\\Shaders\\Sky.hlsl", nullptr, "PS", "ps_5_1");
 
     mInputLayout =
     {
@@ -808,7 +819,10 @@ void ShadowMapApp::BuildShapeGeometry()
 	GeometryGenerator::MeshData grid = geoGen.CreateGrid(20.0f, 30.0f, 60, 40);
 	GeometryGenerator::MeshData sphere = geoGen.CreateSphere(0.5f, 20, 20);
 	GeometryGenerator::MeshData cylinder = geoGen.CreateCylinder(0.5f, 0.3f, 3.0f, 20, 20);
+
+    // 显示在 屏幕上的（不需要其他变换 单位I）
     GeometryGenerator::MeshData quad = geoGen.CreateQuad(0.0f, 0.0f, 1.0f, 1.0f, 0.0f);
+    //GeometryGenerator::MeshData quad = geoGen.CreateQuad(0.0f, 0.0f, 1.0f, 1.0f, 0.5f);
     
 	//
 	// We are concatenating all the geometry into one big vertex/index buffer.  So
@@ -1096,7 +1110,8 @@ void ShadowMapApp::BuildPSOs()
     // PSO for shadow map pass.
     //
     D3D12_GRAPHICS_PIPELINE_STATE_DESC smapPsoDesc = opaquePsoDesc;
-    smapPsoDesc.RasterizerState.DepthBias = 100000;
+    // 阴影 深度偏移
+    smapPsoDesc.RasterizerState.DepthBias = 100000;          
     smapPsoDesc.RasterizerState.DepthBiasClamp = 0.0f;
     smapPsoDesc.RasterizerState.SlopeScaledDepthBias = 1.0f;
     smapPsoDesc.pRootSignature = mRootSignature.Get();
@@ -1112,6 +1127,7 @@ void ShadowMapApp::BuildPSOs()
     };
     
     // Shadow map pass does not have a render target.
+    //  不需要 RT
     smapPsoDesc.RTVFormats[0] = DXGI_FORMAT_UNKNOWN;
     smapPsoDesc.NumRenderTargets = 0;
     ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&smapPsoDesc, IID_PPV_ARGS(&mPSOs["shadow_opaque"])));
@@ -1137,13 +1153,9 @@ void ShadowMapApp::BuildPSOs()
 	// PSO for sky.
 	//
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC skyPsoDesc = opaquePsoDesc;
-
-	// The camera is inside the sky sphere, so just turn off culling.
+    //  天空球 不需要内部剔除
 	skyPsoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
-
-	// Make sure the depth function is LESS_EQUAL and not just LESS.  
-	// Otherwise, the normalized depth values at z = 1 (NDC) will 
-	// fail the depth test if the depth buffer was cleared to 1.
+    // 深度测试需要 小于等于（天空球深度=1 最远处）
 	skyPsoDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
 	skyPsoDesc.pRootSignature = mRootSignature.Get();
 	skyPsoDesc.VS =
@@ -1166,6 +1178,7 @@ void ShadowMapApp::BuildFrameResources()
     {
         mFrameResources.push_back(std::make_unique<FrameResource>(md3dDevice.Get(),
             2, (UINT)mAllRitems.size(), (UINT)mMaterials.size()));
+        // 需要两个pass：main、shadowpass
     }
 }
 
@@ -1243,7 +1256,7 @@ void ShadowMapApp::BuildRenderItems()
     quadRitem->World = MathHelper::Identity4x4();
     quadRitem->TexTransform = MathHelper::Identity4x4();
     quadRitem->ObjCBIndex = 1;
-    quadRitem->Mat = mMaterials["bricks0"].get();
+    quadRitem->Mat = mMaterials["bricks0"].get(); // 实际上绘制 debug shadowmap的时候用不到材质，直接采样的shadowmap作颜色
     quadRitem->Geo = mGeometries["shapeGeo"].get();
     quadRitem->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
     quadRitem->IndexCount = quadRitem->Geo->DrawArgs["quad"].IndexCount;
@@ -1379,7 +1392,7 @@ void ShadowMapApp::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std
 
         D3D12_GPU_VIRTUAL_ADDRESS objCBAddress = objectCB->GetGPUVirtualAddress() + ri->ObjCBIndex*objCBByteSize;
 
-		cmdList->SetGraphicsRootConstantBufferView(0, objCBAddress);
+		cmdList->SetGraphicsRootConstantBufferView(0, objCBAddress);// 物体常量
 
         cmdList->DrawIndexedInstanced(ri->IndexCount, 1, ri->StartIndexLocation, ri->BaseVertexLocation, 0);
     }
@@ -1391,30 +1404,36 @@ void ShadowMapApp::DrawSceneToShadowMap()
     mCommandList->RSSetScissorRects(1, &mShadowMap->ScissorRect());
 
     // Change to DEPTH_WRITE.
+    // 资源转换： 设置 shadowmap 为深度写入
     mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mShadowMap->Resource(),
         D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_DEPTH_WRITE));
 
     UINT passCBByteSize = d3dUtil::CalcConstantBufferByteSize(sizeof(PassConstants));
 
     // Clear the back buffer and depth buffer.
+    // 清理 深度缓冲区
     mCommandList->ClearDepthStencilView(mShadowMap->Dsv(), 
         D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
     // Set null render target because we are only going to draw to
     // depth buffer.  Setting a null render target will disable color writes.
     // Note the active PSO also must specify a render target count of 0.
+    // 用不到 RT ，设置为nullptr（PSO中也对应设置）
     mCommandList->OMSetRenderTargets(0, nullptr, false, &mShadowMap->Dsv());
 
     // Bind the pass constant buffer for the shadow map pass.
     auto passCB = mCurrFrameResource->PassCB->Resource();
     D3D12_GPU_VIRTUAL_ADDRESS passCBAddress = passCB->GetGPUVirtualAddress() + 1*passCBByteSize;
+    //  偏移到 shadowpass 的常量
     mCommandList->SetGraphicsRootConstantBufferView(1, passCBAddress);
-
+    
+    // 设置PSO  
     mCommandList->SetPipelineState(mPSOs["shadow_opaque"].Get());
 
     DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Opaque]);
 
     // Change back to GENERIC_READ so we can read the texture in a shader.
+    // 再 转换为 读
     mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mShadowMap->Resource(),
         D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_GENERIC_READ));
 }
@@ -1472,13 +1491,13 @@ std::array<const CD3DX12_STATIC_SAMPLER_DESC, 7> ShadowMapApp::GetStaticSamplers
 
     const CD3DX12_STATIC_SAMPLER_DESC shadow(
         6, // shaderRegister
-        D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT, // filter
+        D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT, // filter     // 用于 PCF 
         D3D12_TEXTURE_ADDRESS_MODE_BORDER,  // addressU
         D3D12_TEXTURE_ADDRESS_MODE_BORDER,  // addressV
         D3D12_TEXTURE_ADDRESS_MODE_BORDER,  // addressW
         0.0f,                               // mipLODBias
         16,                                 // maxAnisotropy
-        D3D12_COMPARISON_FUNC_LESS_EQUAL,
+        D3D12_COMPARISON_FUNC_LESS_EQUAL,                       // 比较函数
         D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK);
 
 	return { 

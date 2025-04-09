@@ -2,11 +2,11 @@
 // SsaoApp.cpp by Frank Luna (C) 2015 All Rights Reserved.
 //***************************************************************************************
 
-#include "../../Common/d3dApp.h"
-#include "../../Common/MathHelper.h"
-#include "../../Common/UploadBuffer.h"
-#include "../../Common/GeometryGenerator.h"
-#include "../../Common/Camera.h"
+#include "d3dApp.h"
+#include "MathHelper.h"
+#include "UploadBuffer.h"
+#include "GeometryGenerator.h"
+#include "Camera.h"
 #include "FrameResource.h"
 #include "ShadowMap.h"
 #include "Ssao.h"
@@ -84,7 +84,7 @@ private:
 	void AnimateMaterials(const GameTimer& gt);
 	void UpdateObjectCBs(const GameTimer& gt);
 	void UpdateMaterialBuffer(const GameTimer& gt);
-    void UpdateShadowTransform(const GameTimer& gt);
+    void UpdateShadowTransform(const GameTimer& gt);    // 更新 光源相机的参数（用于绘制 shadowmap）
 	void UpdateMainPassCB(const GameTimer& gt);
     void UpdateShadowPassCB(const GameTimer& gt);
     void UpdateSsaoCB(const GameTimer& gt);
@@ -165,7 +165,7 @@ private:
     XMFLOAT4X4 mLightProj = MathHelper::Identity4x4();
     XMFLOAT4X4 mShadowTransform = MathHelper::Identity4x4();
 
-    float mLightRotationAngle = 0.0f;
+    float mLightRotationAngle = 0.0f;       // 旋转角度
     XMFLOAT3 mBaseLightDirections[3] = {
         XMFLOAT3(0.57735f, -0.57735f, 0.57735f),
         XMFLOAT3(-0.57735f, -0.57735f, 0.57735f),
@@ -225,7 +225,8 @@ bool SsaoApp::Initialize()
     ThrowIfFailed(mCommandList->Reset(mDirectCmdListAlloc.Get(), nullptr));
 
 	mCamera.SetPosition(0.0f, 2.0f, -15.0f);
- 
+    
+    //  阴影图：2048*2048
     mShadowMap = std::make_unique<ShadowMap>(md3dDevice.Get(),
         2048, 2048);
 
@@ -548,8 +549,6 @@ void SsaoApp::UpdateMaterialBuffer(const GameTimer& gt)
 	auto currMaterialBuffer = mCurrFrameResource->MaterialBuffer.get();
 	for(auto& e : mMaterials)
 	{
-		// Only update the cbuffer data if the constants have changed.  If the cbuffer
-		// data changes, it needs to be updated for each FrameResource.
 		Material* mat = e.second.get();
 		if(mat->NumFramesDirty > 0)
 		{
@@ -563,6 +562,7 @@ void SsaoApp::UpdateMaterialBuffer(const GameTimer& gt)
 			matData.DiffuseMapIndex = mat->DiffuseSrvHeapIndex;
 			matData.NormalMapIndex = mat->NormalSrvHeapIndex;
 
+            // 更新到 帧资源的 材质buffer 的对应位置
 			currMaterialBuffer->CopyData(mat->MatCBIndex, matData);
 
 			// Next FrameResource need to be updated too.
@@ -573,6 +573,8 @@ void SsaoApp::UpdateMaterialBuffer(const GameTimer& gt)
 
 void SsaoApp::UpdateShadowTransform(const GameTimer& gt)
 {
+    // 光源相机的 View/Proj/T/S变换矩阵、正交视锥体
+
     // Only the first "main" light casts a shadow.
     XMVECTOR lightDir = XMLoadFloat3(&mRotatedLightDirections[0]);
     XMVECTOR lightPos = -2.0f*mSceneBounds.Radius*lightDir;
@@ -738,13 +740,13 @@ void SsaoApp::LoadTextures()
 	
     std::vector<std::wstring> texFilenames =
     {
-        L"../../Textures/bricks2.dds",
-        L"../../Textures/bricks2_nmap.dds",
-        L"../../Textures/tile.dds",
-        L"../../Textures/tile_nmap.dds",
-        L"../../Textures/white1x1.dds",
-        L"../../Textures/default_nmap.dds",
-        L"../../Textures/sunsetcube1024.dds"
+        L"./Textures/bricks2.dds",
+        L"./Textures/bricks2_nmap.dds",
+        L"./Textures/tile.dds",
+        L"./Textures/tile_nmap.dds",
+        L"./Textures/white1x1.dds",
+        L"./Textures/default_nmap.dds",
+        L"./Textures/sunsetcube1024.dds"
     };
 	
 	for(int i = 0; i < (int)texNames.size(); ++i)
@@ -763,18 +765,19 @@ void SsaoApp::LoadTextures()
 void SsaoApp::BuildRootSignature()
 {
 	CD3DX12_DESCRIPTOR_RANGE texTable0;
-	texTable0.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 3, 0, 0);
+	texTable0.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 3, 0, 0);   //   t0-space0
 
 	CD3DX12_DESCRIPTOR_RANGE texTable1;
-	texTable1.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 10, 3, 0);
+	texTable1.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 10, 3, 0);// 其他纹理  t3 -space0 
 
     // Root parameter can be a table, root descriptor or root constants.
     CD3DX12_ROOT_PARAMETER slotRootParameter[5];
 
 	// Perfomance TIP: Order from most frequent to least frequent.
-    slotRootParameter[0].InitAsConstantBufferView(0);
-    slotRootParameter[1].InitAsConstantBufferView(1);
-    slotRootParameter[2].InitAsShaderResourceView(0, 1);
+    slotRootParameter[0].InitAsConstantBufferView(0);   // 物体常量
+    slotRootParameter[1].InitAsConstantBufferView(1);   // pass常量
+    slotRootParameter[2].InitAsShaderResourceView(0, 1);// 材质结构体缓冲区   t0-space1
+    // 
 	slotRootParameter[3].InitAsDescriptorTable(1, &texTable0, D3D12_SHADER_VISIBILITY_PIXEL);
 	slotRootParameter[4].InitAsDescriptorTable(1, &texTable1, D3D12_SHADER_VISIBILITY_PIXEL);
 
@@ -818,7 +821,7 @@ void SsaoApp::BuildSsaoRootSignature()
 
     // Perfomance TIP: Order from most frequent to least frequent.
     slotRootParameter[0].InitAsConstantBufferView(0);
-    slotRootParameter[1].InitAsConstants(1, 1);
+    slotRootParameter[1].InitAsConstants(1, 1);         // 根常量
     slotRootParameter[2].InitAsDescriptorTable(1, &texTable0, D3D12_SHADER_VISIBILITY_PIXEL);
     slotRootParameter[3].InitAsDescriptorTable(1, &texTable1, D3D12_SHADER_VISIBILITY_PIXEL);
 
@@ -854,7 +857,7 @@ void SsaoApp::BuildSsaoRootSignature()
         D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressV
         D3D12_TEXTURE_ADDRESS_MODE_WRAP); // addressW
 
-    std::array<CD3DX12_STATIC_SAMPLER_DESC, 4> staticSamplers =
+    std::array<CD3DX12_STATIC_SAMPLER_DESC, 4> staticSamplers =     // 该根签名使用的 静态采样器
     {
         pointClamp, linearClamp, depthMapSam, linearWrap
     };
@@ -980,27 +983,27 @@ void SsaoApp::BuildShadersAndInputLayout()
 		NULL, NULL
 	};
 
-	mShaders["standardVS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "VS", "vs_5_1");
-	mShaders["opaquePS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "PS", "ps_5_1");
+	mShaders["standardVS"] = d3dUtil::CompileShader(L".\\main21\\Shaders\\Default.hlsl", nullptr, "VS", "vs_5_1");
+	mShaders["opaquePS"] = d3dUtil::CompileShader(L".\\main21\\Shaders\\Default.hlsl", nullptr, "PS", "ps_5_1");
 
-    mShaders["shadowVS"] = d3dUtil::CompileShader(L"Shaders\\Shadows.hlsl", nullptr, "VS", "vs_5_1");
-    mShaders["shadowOpaquePS"] = d3dUtil::CompileShader(L"Shaders\\Shadows.hlsl", nullptr, "PS", "ps_5_1");
-    mShaders["shadowAlphaTestedPS"] = d3dUtil::CompileShader(L"Shaders\\Shadows.hlsl", alphaTestDefines, "PS", "ps_5_1");
+    mShaders["shadowVS"] = d3dUtil::CompileShader(L".\\main21\\Shaders\\Shadows.hlsl", nullptr, "VS", "vs_5_1");
+    mShaders["shadowOpaquePS"] = d3dUtil::CompileShader(L".\\main21\\Shaders\\Shadows.hlsl", nullptr, "PS", "ps_5_1");
+    mShaders["shadowAlphaTestedPS"] = d3dUtil::CompileShader(L".\\main21\\Shaders\\Shadows.hlsl", alphaTestDefines, "PS", "ps_5_1");
 	
-    mShaders["debugVS"] = d3dUtil::CompileShader(L"Shaders\\ShadowDebug.hlsl", nullptr, "VS", "vs_5_1");
-    mShaders["debugPS"] = d3dUtil::CompileShader(L"Shaders\\ShadowDebug.hlsl", nullptr, "PS", "ps_5_1");
+    mShaders["debugVS"] = d3dUtil::CompileShader(L".\\main21\\Shaders\\ShadowDebug.hlsl", nullptr, "VS", "vs_5_1");
+    mShaders["debugPS"] = d3dUtil::CompileShader(L".\\main21\\Shaders\\ShadowDebug.hlsl", nullptr, "PS", "ps_5_1");
 
-    mShaders["drawNormalsVS"] = d3dUtil::CompileShader(L"Shaders\\DrawNormals.hlsl", nullptr, "VS", "vs_5_1");
-    mShaders["drawNormalsPS"] = d3dUtil::CompileShader(L"Shaders\\DrawNormals.hlsl", nullptr, "PS", "ps_5_1");
+    mShaders["drawNormalsVS"] = d3dUtil::CompileShader(L".\\main21\\Shaders\\DrawNormals.hlsl", nullptr, "VS", "vs_5_1");
+    mShaders["drawNormalsPS"] = d3dUtil::CompileShader(L".\\main21\\Shaders\\DrawNormals.hlsl", nullptr, "PS", "ps_5_1");
 
-    mShaders["ssaoVS"] = d3dUtil::CompileShader(L"Shaders\\Ssao.hlsl", nullptr, "VS", "vs_5_1");
-    mShaders["ssaoPS"] = d3dUtil::CompileShader(L"Shaders\\Ssao.hlsl", nullptr, "PS", "ps_5_1");
+    mShaders["ssaoVS"] = d3dUtil::CompileShader(L".\\main21\\Shaders\\Ssao.hlsl", nullptr, "VS", "vs_5_1");
+    mShaders["ssaoPS"] = d3dUtil::CompileShader(L".\\main21\\Shaders\\Ssao.hlsl", nullptr, "PS", "ps_5_1");
 
-    mShaders["ssaoBlurVS"] = d3dUtil::CompileShader(L"Shaders\\SsaoBlur.hlsl", nullptr, "VS", "vs_5_1");
-    mShaders["ssaoBlurPS"] = d3dUtil::CompileShader(L"Shaders\\SsaoBlur.hlsl", nullptr, "PS", "ps_5_1");
+    mShaders["ssaoBlurVS"] = d3dUtil::CompileShader(L".\\main21\\Shaders\\SsaoBlur.hlsl", nullptr, "VS", "vs_5_1");
+    mShaders["ssaoBlurPS"] = d3dUtil::CompileShader(L".\\main21\\Shaders\\SsaoBlur.hlsl", nullptr, "PS", "ps_5_1");
 
-	mShaders["skyVS"] = d3dUtil::CompileShader(L"Shaders\\Sky.hlsl", nullptr, "VS", "vs_5_1");
-	mShaders["skyPS"] = d3dUtil::CompileShader(L"Shaders\\Sky.hlsl", nullptr, "PS", "ps_5_1");
+	mShaders["skyVS"] = d3dUtil::CompileShader(L".\\main21\\Shaders\\Sky.hlsl", nullptr, "VS", "vs_5_1");
+	mShaders["skyPS"] = d3dUtil::CompileShader(L".\\main21\\Shaders\\Sky.hlsl", nullptr, "PS", "ps_5_1");
 
     mInputLayout =
     {
@@ -1018,6 +1021,7 @@ void SsaoApp::BuildShapeGeometry()
 	GeometryGenerator::MeshData grid = geoGen.CreateGrid(20.0f, 30.0f, 60, 40);
 	GeometryGenerator::MeshData sphere = geoGen.CreateSphere(0.5f, 20, 20);
 	GeometryGenerator::MeshData cylinder = geoGen.CreateCylinder(0.5f, 0.3f, 3.0f, 20, 20);
+    
     GeometryGenerator::MeshData quad = geoGen.CreateQuad(0.0f, 0.0f, 1.0f, 1.0f, 0.0f);
     
 	//
@@ -1328,6 +1332,7 @@ void SsaoApp::BuildPSOs()
     };
     
     // Shadow map pass does not have a render target.
+    // 不需要RT
     smapPsoDesc.RTVFormats[0] = DXGI_FORMAT_UNKNOWN;
     smapPsoDesc.NumRenderTargets = 0;
     ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&smapPsoDesc, IID_PPV_ARGS(&mPSOs["shadow_opaque"])));
@@ -1444,6 +1449,7 @@ void SsaoApp::BuildFrameResources()
     {
         mFrameResources.push_back(std::make_unique<FrameResource>(md3dDevice.Get(),
             2, (UINT)mAllRitems.size(), (UINT)mMaterials.size()));
+        // 两个 pass
     }
 }
 
@@ -1521,7 +1527,7 @@ void SsaoApp::BuildRenderItems()
     quadRitem->World = MathHelper::Identity4x4();
     quadRitem->TexTransform = MathHelper::Identity4x4();
     quadRitem->ObjCBIndex = 1;
-    quadRitem->Mat = mMaterials["bricks0"].get();
+    quadRitem->Mat = mMaterials["bricks0"].get();   // 不一定使用
     quadRitem->Geo = mGeometries["shapeGeo"].get();
     quadRitem->PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
     quadRitem->IndexCount = quadRitem->Geo->DrawArgs["quad"].IndexCount;
@@ -1655,9 +1661,10 @@ void SsaoApp::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vec
         cmdList->IASetIndexBuffer(&ri->Geo->IndexBufferView());
         cmdList->IASetPrimitiveTopology(ri->PrimitiveType);
 
+        // 偏移到 ObjectCB 中该物体位置
         D3D12_GPU_VIRTUAL_ADDRESS objCBAddress = objectCB->GetGPUVirtualAddress() + ri->ObjCBIndex*objCBByteSize;
-
-		cmdList->SetGraphicsRootConstantBufferView(0, objCBAddress);
+		
+        cmdList->SetGraphicsRootConstantBufferView(0, objCBAddress);    // 根参数1：物体常量
 
         cmdList->DrawIndexedInstanced(ri->IndexCount, 1, ri->StartIndexLocation, ri->BaseVertexLocation, 0);
     }
@@ -1814,7 +1821,7 @@ std::array<const CD3DX12_STATIC_SAMPLER_DESC, 7> SsaoApp::GetStaticSamplers()
         D3D12_TEXTURE_ADDRESS_MODE_BORDER,  // addressW
         0.0f,                               // mipLODBias
         16,                                 // maxAnisotropy
-        D3D12_COMPARISON_FUNC_LESS_EQUAL,
+        D3D12_COMPARISON_FUNC_LESS_EQUAL,                       // 小于等于， 进行深度比较
         D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK);
 
 	return { 

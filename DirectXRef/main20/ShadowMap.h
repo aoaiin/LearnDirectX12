@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "../../Common/d3dUtil.h"
+#include "d3dUtil.h"
 
 class ShadowMap
 {
@@ -49,7 +49,7 @@ private:
 
 	CD3DX12_CPU_DESCRIPTOR_HANDLE mhCpuSrv;
 	CD3DX12_GPU_DESCRIPTOR_HANDLE mhGpuSrv;
-	CD3DX12_CPU_DESCRIPTOR_HANDLE mhCpuDsv;
+	CD3DX12_CPU_DESCRIPTOR_HANDLE mhCpuDsv;		// shadowmap资源：需要写入深度--dsv；然后让着色器采样--srv
 
 	Microsoft::WRL::ComPtr<ID3D12Resource> mShadowMap = nullptr;
 };

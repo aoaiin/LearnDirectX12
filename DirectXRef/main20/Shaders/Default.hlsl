@@ -29,7 +29,7 @@ struct VertexIn
 struct VertexOut
 {
 	float4 PosH    : SV_POSITION;
-    float4 ShadowPosH : POSITION0;
+    float4 ShadowPosH : POSITION0;  // 光源相机下的 阴影点的坐标
     float3 PosW    : POSITION1;
     float3 NormalW : NORMAL;
 	float3 TangentW : TANGENT;
@@ -60,6 +60,7 @@ VertexOut VS(VertexIn vin)
 	vout.TexC = mul(texC, matData.MatTransform).xy;
 
     // Generate projective tex-coords to project shadow map onto scene.
+    // 生成 该阴影点 坐标（光源相机下：进行 View-Proj-T ）
     vout.ShadowPosH = mul(posW, gShadowTransform);
 	
     return vout;
@@ -76,6 +77,7 @@ float4 PS(VertexOut pin) : SV_Target
 	uint normalMapIndex = matData.NormalMapIndex;
 	
     // Dynamically look up the texture in the array.
+    //  采用 diffusemap
     diffuseAlbedo *= gTextureMaps[diffuseMapIndex].Sample(gsamAnisotropicWrap, pin.TexC);
 
 #ifdef ALPHA_TEST
@@ -85,9 +87,9 @@ float4 PS(VertexOut pin) : SV_Target
     clip(diffuseAlbedo.a - 0.1f);
 #endif
 
-	// Interpolating normal can unnormalize it, so renormalize it.
+	// PS中得到的 法向 经过插值，需要normalize
     pin.NormalW = normalize(pin.NormalW);
-	
+    // 采样 法线图（0-1），利用 像素法线、切线计算TBN，变换到 世界空间下的 法线
 	float4 normalMapSample = gTextureMaps[normalMapIndex].Sample(gsamAnisotropicWrap, pin.TexC);
 	float3 bumpedNormalW = NormalSampleToWorldSpace(normalMapSample.rgb, pin.NormalW, pin.TangentW);
 
@@ -101,20 +103,20 @@ float4 PS(VertexOut pin) : SV_Target
     float4 ambient = gAmbientLight*diffuseAlbedo;
 
     // Only the first light casts a shadow.
-    float3 shadowFactor = float3(1.0f, 1.0f, 1.0f);
+    float3 shadowFactor = float3(1.0f, 1.0f, 1.0f);     // 阴影因子（只用第一个光，第一个分量）
     shadowFactor[0] = CalcShadowFactor(pin.ShadowPosH);
 
-    const float shininess = (1.0f - roughness) * normalMapSample.a;
+    const float shininess = (1.0f - roughness) * normalMapSample.a; // 法线图的alpha中存放的时 光泽度
     Material mat = { diffuseAlbedo, fresnelR0, shininess };
     float4 directLight = ComputeLighting(gLights, mat, pin.PosW,
-        bumpedNormalW, toEyeW, shadowFactor);
+        bumpedNormalW, toEyeW, shadowFactor);   // 用 直接光照计算diffuse项
 
     float4 litColor = ambient + directLight;
 
-	// Add in specular reflections.
+	// Add in specular reflections. 镜面反射（来自环境/间接）
     float3 r = reflect(-toEyeW, bumpedNormalW);
-    float4 reflectionColor = gCubeMap.Sample(gsamLinearWrap, r);
-    float3 fresnelFactor = SchlickFresnel(fresnelR0, bumpedNormalW, r);
+    float4 reflectionColor = gCubeMap.Sample(gsamLinearWrap, r);          // 采样cubemap得到环境光  
+    float3 fresnelFactor = SchlickFresnel(fresnelR0, bumpedNormalW, r);   // 用 r（环境的入射）、法线，计算菲尼尔反射因子
     litColor.rgb += shininess * fresnelFactor * reflectionColor.rgb;
 	
     // Common convention to take alpha from diffuse albedo.

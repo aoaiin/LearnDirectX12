@@ -78,7 +78,7 @@ float4 PS(VertexOut pin) : SV_Target
 	
 	// 采样 法线
 	float4 normalMapSample = gTextureMaps[normalMapIndex].Sample(gsamAnisotropicWrap, pin.TexC);
-	// 带入 采样法线、像素法线、像素切线：计算
+	// 带入 （采样法线、像素法线、像素切线）
 	float3 bumpedNormalW = NormalSampleToWorldSpace(normalMapSample.rgb, pin.NormalW, pin.TangentW);
 
 	// 提前 return 查看法线
@@ -89,6 +89,7 @@ float4 PS(VertexOut pin) : SV_Target
 	//bumpedNormalW = pin.NormalW;
 
 	// Dynamically look up the texture in the array.
+	// 采样 diffusemap
 	diffuseAlbedo *= gTextureMaps[diffuseMapIndex].Sample(gsamAnisotropicWrap, pin.TexC);
 
     // Vector from point being lit to eye. 

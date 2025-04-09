@@ -45,10 +45,16 @@
     <ClCompile Include="main18\DynamicCube\CubeRenderTarget.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="main19\FrameResource.cpp">
+    <ClCompile Include="main21\Ssao.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="main19\NormalMapApp.cpp">
+    <ClCompile Include="main21\SsaoApp.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="main21\FrameResource.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="main21\ShadowMap.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
@@ -89,7 +95,13 @@
     <ClInclude Include="main18\DynamicCube\CubeRenderTarget.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="main19\FrameResource.h">
+    <ClInclude Include="main21\Ssao.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="main21\FrameResource.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="main21\ShadowMap.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

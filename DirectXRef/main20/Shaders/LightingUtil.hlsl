@@ -44,17 +44,20 @@ float3 SchlickFresnel(float3 R0, float3 normal, float3 lightVec)
 float3 BlinnPhong(float3 lightStrength, float3 lightVec, float3 normal, float3 toEye, Material mat)
 {
     const float m = mat.Shininess * 256.0f;
-    float3 halfVec = normalize(toEye + lightVec);
+    float3 halfVec = normalize(toEye + lightVec);   // 半向量
 
+    // (8+m)/8 *  cos(h,n)^m    m为光滑度=(1-roughness)*光泽度
+    //      宏观法线与半向量 夹角为theta_h 的所有微平面
     float roughnessFactor = (m + 8.0f)*pow(max(dot(halfVec, normal), 0.0f), m) / 8.0f;
-    float3 fresnelFactor = SchlickFresnel(mat.FresnelR0, halfVec, lightVec);
-
-    float3 specAlbedo = fresnelFactor*roughnessFactor;
+    // 菲涅尔效应（用半向量）
+    float3 fresnelFactor = SchlickFresnel(mat.FresnelR0, halfVec, lightVec); 
+    float3 specAlbedo = fresnelFactor*roughnessFactor;  // 
 
     // Our spec formula goes outside [0,1] range, but we are 
     // doing LDR rendering.  So scale it down a bit.
-    specAlbedo = specAlbedo / (specAlbedo + 1.0f);
+    specAlbedo = specAlbedo / (specAlbedo + 1.0f);  // LDR：缩放到0-1
 
+    // lightStrength * (md + Rf*  (m+8)/8 *(nh)^m )
     return (mat.DiffuseAlbedo.rgb + specAlbedo) * lightStrength;
 }
 
@@ -64,11 +67,11 @@ float3 BlinnPhong(float3 lightStrength, float3 lightVec, float3 normal, float3 t
 float3 ComputeDirectionalLight(Light L, Material mat, float3 normal, float3 toEye)
 {
     // The light vector aims opposite the direction the light rays travel.
-    float3 lightVec = -L.Direction;
+    float3 lightVec = -L.Direction; // 计算的时候：指向光源
 
     // Scale light down by Lambert's cosine law.
     float ndotl = max(dot(lightVec, normal), 0.0f);
-    float3 lightStrength = L.Strength * ndotl;
+    float3 lightStrength = L.Strength * ndotl;      // 垂直照（Lambert余弦）
 
     return BlinnPhong(lightStrength, lightVec, normal, toEye, mat);
 }

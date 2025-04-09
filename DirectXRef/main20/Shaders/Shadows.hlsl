@@ -39,6 +39,7 @@ VertexOut VS(VertexIn vin)
 // This is only used for alpha cut out geometry, so that shadows 
 // show up correctly.  Geometry that does not need to sample a
 // texture can use a NULL pixel shader for depth pass.
+//	如果没有 透明测试，PS可以为空
 void PS(VertexOut pin) 
 {
 	// Fetch the material data.

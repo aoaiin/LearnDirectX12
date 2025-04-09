@@ -81,6 +81,8 @@ void ShadowMap::OnResize(UINT newWidth, UINT newHeight)
  
 void ShadowMap::BuildDescriptors()
 {
+	//	shadowmap：先写入深度--dsv、再让着色器采样--srv
+
     // Create SRV to resource so we can sample the shadow map in a shader program.
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;

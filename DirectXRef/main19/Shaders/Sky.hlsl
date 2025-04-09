@@ -39,6 +39,7 @@ VertexOut VS(VertexIn vin)
 
 float4 PS(VertexOut pin) : SV_Target
 {
+	// 采样环境贴图
 	return gCubeMap.Sample(gsamLinearWrap, pin.PosL);
 }
 

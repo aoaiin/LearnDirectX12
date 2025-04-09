@@ -48,7 +48,7 @@ SamplerState gsamLinearWrap       : register(s2);
 SamplerState gsamLinearClamp      : register(s3);
 SamplerState gsamAnisotropicWrap  : register(s4);
 SamplerState gsamAnisotropicClamp : register(s5);
-SamplerComparisonState gsamShadow : register(s6);
+SamplerComparisonState gsamShadow : register(s6);   // 小于等于
 
 // Constant data that varies per frame.
 cbuffer cbPerObject : register(b0)
@@ -114,20 +114,22 @@ float3 NormalSampleToWorldSpace(float3 normalMapSample, float3 unitNormalW, floa
 
 float CalcShadowFactor(float4 shadowPosH)
 {
-    // Complete projection by doing division by w.
-    shadowPosH.xyz /= shadowPosH.w;
+    // shadowPosH 为光源相机下，经过 View-正交Proj-T
+   
+    // Complete projection by doing division by w. （正交投影，齐次裁剪一下）
+    shadowPosH.xyz /= shadowPosH.w; 
 
     // Depth in NDC space.
-    float depth = shadowPosH.z;
+    float depth = shadowPosH.z; // 取ndc的深度
 
     uint width, height, numMips;
-    gShadowMap.GetDimensions(0, width, height, numMips);
+    gShadowMap.GetDimensions(0, width, height, numMips);    // 获取shadowmap的长宽
 
-    // Texel size.
-    float dx = 1.0f / (float)width;
+    // Texel size. 纹素大小
+    float dx = 1.0f / (float)width; 
 
     float percentLit = 0.0f;
-    const float2 offsets[9] =
+    const float2 offsets[9] =       // PCF使用9个核
     {
         float2(-dx,  -dx), float2(0.0f,  -dx), float2(dx,  -dx),
         float2(-dx, 0.0f), float2(0.0f, 0.0f), float2(dx, 0.0f),
@@ -137,6 +139,9 @@ float CalcShadowFactor(float4 shadowPosH)
     [unroll]
     for(int i = 0; i < 9; ++i)
     {
+        // 采样 shadowmap的深度（光源相机看到的物体的深度）， 然后与当前像素的深度比较 
+        //     小于等于 depth -》 当前像素深度更大，在阴影 -》返回1
+        // 插值 ： 得到阴影的灰度
         percentLit += gShadowMap.SampleCmpLevelZero(gsamShadow,
             shadowPosH.xy + offsets[i], depth).r;
     }

@@ -22,7 +22,7 @@ VertexOut VS(VertexIn vin)
 	VertexOut vout = (VertexOut)0.0f;
 
     // Already in homogeneous clip space.
-    vout.PosH = float4(vin.PosL, 1.0f);
+    vout.PosH = float4(vin.PosL, 1.0f);		// 不用变换，直接显示在屏幕
 	
 	vout.TexC = vin.TexC;
 	
@@ -31,6 +31,7 @@ VertexOut VS(VertexIn vin)
 
 float4 PS(VertexOut pin) : SV_Target
 {
+	// 采样 阴影图
     return float4(gShadowMap.Sample(gsamLinearWrap, pin.TexC).rrr, 1.0f);
 }
 
