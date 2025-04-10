@@ -92,7 +92,7 @@ float4 PS(VertexOut pin) : SV_Target
         gBlurWeights[2].x, gBlurWeights[2].y, gBlurWeights[2].z, gBlurWeights[2].w,
     };
 
-	float2 texOffset;
+	float2 texOffset;       // 纹素大小
 	if(gHorizontalBlur)
 	{
 		texOffset = float2(gInvRenderTargetSize.x, 0.0f);
@@ -103,9 +103,11 @@ float4 PS(VertexOut pin) : SV_Target
 	}
 
 	// The center value always contributes to the sum.
+    //  对遮蔽图采样（中间位置index）
 	float4 color      = blurWeights[gBlurRadius] * gInputMap.SampleLevel(gsamPointClamp, pin.TexC, 0.0);
 	float totalWeight = blurWeights[gBlurRadius];
 	 
+    // 处理点 的法线、深度
     float3 centerNormal = gNormalMap.SampleLevel(gsamPointClamp, pin.TexC, 0.0f).xyz;
     float  centerDepth = NdcDepthToViewDepth(
         gDepthMap.SampleLevel(gsamDepthMap, pin.TexC, 0.0f).r);
@@ -113,11 +115,11 @@ float4 PS(VertexOut pin) : SV_Target
 	for(float i = -gBlurRadius; i <=gBlurRadius; ++i)
 	{
 		// We already added in the center weight.
-		if( i == 0 )
+		if( i == 0 )    // 上面采样时
 			continue;
 
-		float2 tex = pin.TexC + i*texOffset;
-
+		float2 tex = pin.TexC + i*texOffset;    // UV 按纹素大小进行偏移
+        //  采样 该位置的法线、深度
 		float3 neighborNormal = gNormalMap.SampleLevel(gsamPointClamp, tex, 0.0f).xyz;
         float  neighborDepth  = NdcDepthToViewDepth(
             gDepthMap.SampleLevel(gsamDepthMap, tex, 0.0f).r);
@@ -128,16 +130,16 @@ float4 PS(VertexOut pin) : SV_Target
 		// We discard such samples from the blur.
 		//
 	
-		if( dot(neighborNormal, centerNormal) >= 0.8f &&
-		    abs(neighborDepth - centerDepth) <= 0.2f )
+		if( dot(neighborNormal, centerNormal) >= 0.8f &&        // 法线差值/偏移 、深度差值过大
+		    abs(neighborDepth - centerDepth) <= 0.2f )          //  表示边界，不需要模糊
 		{
             float weight = blurWeights[i + gBlurRadius];
 
 			// Add neighbor pixel to blur.
-			color += weight*gInputMap.SampleLevel(
+			color += weight*gInputMap.SampleLevel(          // 累加可及率 += 权重 * 该位置的可及率 
                 gsamPointClamp, tex, 0.0);
 		
-			totalWeight += weight;
+			totalWeight += weight;  // 累加权重
 		}
 	}
 

@@ -101,8 +101,8 @@ private:
     void BuildMaterials();
     void BuildRenderItems();
     void DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<RenderItem*>& ritems);
-    void DrawSceneToShadowMap();
-	void DrawNormalsAndDepth();
+    void DrawSceneToShadowMap();    // 绘制到 shadowmap资源（只需要深度缓冲区DSV）
+	void DrawNormalsAndDepth();     // 绘制（相机空间下的 场景）法线到 SSAO类的资源中
 
     CD3DX12_CPU_DESCRIPTOR_HANDLE GetCpuSrv(int index)const;
     CD3DX12_GPU_DESCRIPTOR_HANDLE GetGpuSrv(int index)const;
@@ -156,8 +156,9 @@ private:
 
     std::unique_ptr<Ssao> mSsao;
 
-    DirectX::BoundingSphere mSceneBounds;
+    DirectX::BoundingSphere mSceneBounds;   // 场景包围球
 
+    // 光源相机 需要的参数：
     float mLightNearZ = 0.0f;
     float mLightFarZ = 0.0f;
     XMFLOAT3 mLightPosW;
@@ -230,6 +231,7 @@ bool SsaoApp::Initialize()
     mShadowMap = std::make_unique<ShadowMap>(md3dDevice.Get(),
         2048, 2048);
 
+    // SSAO 大小=屏幕视口大小
     mSsao = std::make_unique<Ssao>(
         md3dDevice.Get(),
         mCommandList.Get(),
@@ -247,7 +249,7 @@ bool SsaoApp::Initialize()
     BuildFrameResources();
     BuildPSOs();
 
-    mSsao->SetPSOs(mPSOs["ssao"].Get(), mPSOs["ssaoBlur"].Get());
+    mSsao->SetPSOs(mPSOs["ssao"].Get(), mPSOs["ssaoBlur"].Get());   // 设置 SSAO类的PSO
 
     // Execute the initialization commands.
     ThrowIfFailed(mCommandList->Close());
@@ -264,7 +266,7 @@ void SsaoApp::CreateRtvAndDsvDescriptorHeaps()
 {
     // Add +1 for screen normal map, +2 for ambient maps.
     D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc;
-    rtvHeapDesc.NumDescriptors = SwapChainBufferCount + 3;
+    rtvHeapDesc.NumDescriptors = SwapChainBufferCount + 3;  // AO 需要绘制normalmap、处理的时候需要两个map
     rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
     rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
     rtvHeapDesc.NodeMask = 0;
@@ -273,7 +275,7 @@ void SsaoApp::CreateRtvAndDsvDescriptorHeaps()
 
     // Add +1 DSV for shadow map.
     D3D12_DESCRIPTOR_HEAP_DESC dsvHeapDesc;
-    dsvHeapDesc.NumDescriptors = 2;
+    dsvHeapDesc.NumDescriptors = 2;                     // shadowmap需要一个深度
     dsvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
     dsvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
     dsvHeapDesc.NodeMask = 0;
@@ -317,9 +319,7 @@ void SsaoApp::Update(const GameTimer& gt)
     //
     // Animate the lights (and hence shadows).
     //
-
     mLightRotationAngle += 0.1f*gt.DeltaTime();
-
     XMMATRIX R = XMMatrixRotationY(mLightRotationAngle);
     for(int i = 0; i < 3; ++i)
     {
@@ -354,6 +354,7 @@ void SsaoApp::Draw(const GameTimer& gt)
 
     mCommandList->SetGraphicsRootSignature(mRootSignature.Get());
 
+
 	//
 	// Shadow map pass.
 	//
@@ -364,28 +365,39 @@ void SsaoApp::Draw(const GameTimer& gt)
     mCommandList->SetGraphicsRootShaderResourceView(2, matBuffer->GetGPUVirtualAddress());
 	
     // Bind null SRV for shadow map pass.
+    // shadowmap 不需要cubemap/所以设置该 根参数3 为nullSRV
+    //           (其他的如 环境cubemap，需要用到根参数3，就对应设置)
     mCommandList->SetGraphicsRootDescriptorTable(3, mNullSrv);	 
 
     // Bind all the textures used in this scene.  Observe
     // that we only have to specify the first descriptor in the table.  
     // The root signature knows how many descriptors are expected in the table.
+    //  绑定其他纹理（都是这个，不一定使用）
     mCommandList->SetGraphicsRootDescriptorTable(4, mSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
 
-    DrawSceneToShadowMap();
+    DrawSceneToShadowMap(); // 绘制shadowmap资源
+
 
 	//
 	// Normal/depth pass.
-	//
-	
-	DrawNormalsAndDepth();
+	//	
+	DrawNormalsAndDepth();  // 绘制到 SSAO的法线图资源 （相机空间下的场景法线）
+    // 绘制了法线 到 SSAO类的normalmap；
+    //   *** 同时该次绘制，深度buffer中也保存了像素深度；下一次绘制时，不用再写入了，深度测试时使用 ==
+    //     但 SSAO的根参数只有 4个，没有深度的？？
+
 	
 	//
 	// Compute SSAO.
 	// 
-	
-    mCommandList->SetGraphicsRootSignature(mSsaoRootSignature.Get());
+	//  设置 SSAO的根参数（SSAO常量、根常量、描述符表（2：normalmap，DSV）、随机向量map）
+    //  然后执行计算 （不需要深度）
+    //      然后模糊3次
+    mCommandList->SetGraphicsRootSignature(mSsaoRootSignature.Get());   
     mSsao->ComputeSsao(mCommandList.Get(), mCurrFrameResource, 3);
 	
+
+
 	//
 	// Main rendering pass.
 	//
@@ -409,7 +421,7 @@ void SsaoApp::Draw(const GameTimer& gt)
 
     // Clear the back buffer.
     mCommandList->ClearRenderTargetView(CurrentBackBufferView(), Colors::LightSteelBlue, 0, nullptr);
-
+    // 前面几次 已经将深度 绘制到 depthBuffer，不用再清除
     // WE ALREADY WROTE THE DEPTH INFO TO THE DEPTH BUFFER IN DrawNormalsAndDepth,
     // SO DO NOT CLEAR DEPTH.
 
@@ -428,7 +440,8 @@ void SsaoApp::Draw(const GameTimer& gt)
     // from far away, so all objects will use the same cube map and we only need to set it once per-frame.  
     // If we wanted to use "local" cube maps, we would have to change them per-object, or dynamically
     // index into an array of cube maps.
-
+    // 
+    // 根参数3 看hlsl中的 t0-2 ： 设置 环境cubemap、shadowmap、SSAO (可以看 描述符堆中是否是这个顺序)
     CD3DX12_GPU_DESCRIPTOR_HANDLE skyTexDescriptor(mSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
     skyTexDescriptor.Offset(mSkyTexHeapIndex, mCbvSrvUavDescriptorSize);
     mCommandList->SetGraphicsRootDescriptorTable(3, skyTexDescriptor);
@@ -436,9 +449,11 @@ void SsaoApp::Draw(const GameTimer& gt)
     mCommandList->SetPipelineState(mPSOs["opaque"].Get());
     DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Opaque]);
 
+
+    // 绘制debug面板（是可及率），PS 采样的是 SSAOmap
     mCommandList->SetPipelineState(mPSOs["debug"].Get());
     DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Debug]);
-
+    // 最后绘制 环境/天空
 	mCommandList->SetPipelineState(mPSOs["sky"].Get());
 	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Sky]);
 
@@ -446,6 +461,9 @@ void SsaoApp::Draw(const GameTimer& gt)
 	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
 		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT));
 
+    
+    
+    
     // Done recording commands.
     ThrowIfFailed(mCommandList->Close());
 
@@ -657,7 +675,7 @@ void SsaoApp::UpdateMainPassCB(const GameTimer& gt)
 	mMainPassCB.Lights[2].Strength = { 0.0f, 0.0f, 0.0f };
  
 	auto currPassCB = mCurrFrameResource->PassCB.get();
-	currPassCB->CopyData(0, mMainPassCB);
+	currPassCB->CopyData(0, mMainPassCB);   // 复制到 帧资源 PassCB 的第一个
 }
 
 void SsaoApp::UpdateShadowPassCB(const GameTimer& gt)
@@ -686,7 +704,7 @@ void SsaoApp::UpdateShadowPassCB(const GameTimer& gt)
     mShadowPassCB.FarZ = mLightFarZ;
 
     auto currPassCB = mCurrFrameResource->PassCB.get();
-    currPassCB->CopyData(1, mShadowPassCB);
+    currPassCB->CopyData(1, mShadowPassCB);         // 复制到 帧资源passCB中的第2个
 }
 
 void SsaoApp::UpdateSsaoCB(const GameTimer& gt)
@@ -708,17 +726,17 @@ void SsaoApp::UpdateSsaoCB(const GameTimer& gt)
 
     mSsao->GetOffsetVectors(ssaoCB.OffsetVectors);
 
-    auto blurWeights = mSsao->CalcGaussWeights(2.5f);
-    ssaoCB.BlurWeights[0] = XMFLOAT4(&blurWeights[0]);
+    auto blurWeights = mSsao->CalcGaussWeights(2.5f);   // 半径=ceil(2*sigma) ，共 2*r+1
+    ssaoCB.BlurWeights[0] = XMFLOAT4(&blurWeights[0]);  //  每四个保存
     ssaoCB.BlurWeights[1] = XMFLOAT4(&blurWeights[4]);
     ssaoCB.BlurWeights[2] = XMFLOAT4(&blurWeights[8]);
 
     ssaoCB.InvRenderTargetSize = XMFLOAT2(1.0f / mSsao->SsaoMapWidth(), 1.0f / mSsao->SsaoMapHeight());
 
-    // Coordinates given in view space.
+    // Coordinates given in view space. 遮蔽检测的参数
     ssaoCB.OcclusionRadius = 0.5f;
     ssaoCB.OcclusionFadeStart = 0.2f;
-    ssaoCB.OcclusionFadeEnd = 1.0f;
+    ssaoCB.OcclusionFadeEnd = 1.0f;     // 深度差 在 0.2 ~ 1 之间，则计算遮蔽率
     ssaoCB.SurfaceEpsilon = 0.05f;
  
     auto currSsaoCB = mCurrFrameResource->SsaoCB.get();
@@ -765,7 +783,7 @@ void SsaoApp::LoadTextures()
 void SsaoApp::BuildRootSignature()
 {
 	CD3DX12_DESCRIPTOR_RANGE texTable0;
-	texTable0.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 3, 0, 0);   //   t0-space0
+	texTable0.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 3, 0, 0);   //   t0-space0 （大小=3  会使用 t0、1、2）
 
 	CD3DX12_DESCRIPTOR_RANGE texTable1;
 	texTable1.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 10, 3, 0);// 其他纹理  t3 -space0 
@@ -811,17 +829,17 @@ void SsaoApp::BuildRootSignature()
 void SsaoApp::BuildSsaoRootSignature()
 {
     CD3DX12_DESCRIPTOR_RANGE texTable0;
-    texTable0.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 0, 0);
+    texTable0.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 2, 0, 0);// t0-space0    normalmap （有2个，放normal和DSV？）
 
     CD3DX12_DESCRIPTOR_RANGE texTable1;
-    texTable1.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 0);
+    texTable1.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2, 0);// t2-space0   randomvector
 
     // Root parameter can be a table, root descriptor or root constants.
     CD3DX12_ROOT_PARAMETER slotRootParameter[4];
 
     // Perfomance TIP: Order from most frequent to least frequent.
-    slotRootParameter[0].InitAsConstantBufferView(0);
-    slotRootParameter[1].InitAsConstants(1, 1);         // 根常量
+    slotRootParameter[0].InitAsConstantBufferView(0);   // SSAO常量 b0
+    slotRootParameter[1].InitAsConstants(1, 1);         // 根常量  b1
     slotRootParameter[2].InitAsDescriptorTable(1, &texTable0, D3D12_SHADER_VISIBILITY_PIXEL);
     slotRootParameter[3].InitAsDescriptorTable(1, &texTable1, D3D12_SHADER_VISIBILITY_PIXEL);
 
@@ -889,7 +907,7 @@ void SsaoApp::BuildSsaoRootSignature()
 void SsaoApp::BuildDescriptorHeaps()
 {
 	//
-	// Create the SRV heap.
+	// Create the SRV heap.     着色器资源（所有在绘制时 需要读取的资源，都保存SRV）
 	//
 	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
 	srvHeapDesc.NumDescriptors = 18;
@@ -902,6 +920,7 @@ void SsaoApp::BuildDescriptorHeaps()
 	//
 	CD3DX12_CPU_DESCRIPTOR_HANDLE hDescriptor(mSrvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 
+
 	std::vector<ComPtr<ID3D12Resource>> tex2DList = 
 	{
 		mTextures["bricksDiffuseMap"]->Resource,
@@ -910,8 +929,7 @@ void SsaoApp::BuildDescriptorHeaps()
 		mTextures["tileNormalMap"]->Resource,
 		mTextures["defaultDiffuseMap"]->Resource,
 		mTextures["defaultNormalMap"]->Resource
-	};
-	
+	};	
 	auto skyCubeMap = mTextures["skyCubeMap"]->Resource;
 
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
@@ -919,7 +937,6 @@ void SsaoApp::BuildDescriptorHeaps()
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 	srvDesc.Texture2D.MostDetailedMip = 0;
 	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
-	
 	for(UINT i = 0; i < (UINT)tex2DList.size(); ++i)
 	{
 		srvDesc.Format = tex2DList[i]->GetDesc().Format;
@@ -937,11 +954,18 @@ void SsaoApp::BuildDescriptorHeaps()
 	srvDesc.Format = skyCubeMap->GetDesc().Format;
 	md3dDevice->CreateShaderResourceView(skyCubeMap.Get(), &srvDesc, hDescriptor);
 	
-	mSkyTexHeapIndex = (UINT)tex2DList.size();
-    mShadowMapHeapIndex = mSkyTexHeapIndex + 1;
-    mSsaoHeapIndexStart = mShadowMapHeapIndex + 1;
+    // 上面是 纹理的SRV、环境cubemap的SRV
+    
+    // 然后记录一下  特殊的SRV   在SRV堆中的位置
+	mSkyTexHeapIndex = (UINT)tex2DList.size();  // 天空/环境 cubemap 的SRV在堆中的位置
+
+    //  下面的都是在堆中的index， SRV都没有创建，
+    mShadowMapHeapIndex = mSkyTexHeapIndex + 1;     // shadowmap/深度图 读取时的 SRV 的Index
+
+    mSsaoHeapIndexStart = mShadowMapHeapIndex + 1;  // SSAO 使用的
     mSsaoAmbientMapIndex = mSsaoHeapIndexStart + 3;
-    mNullCubeSrvIndex = mSsaoHeapIndexStart + 5;
+
+    mNullCubeSrvIndex = mSsaoHeapIndexStart + 5;    // 这些空（shadowmap等步骤，不需要cubemap，使用nullSRV填上 根参数）
     mNullTexSrvIndex1 = mNullCubeSrvIndex + 1;
     mNullTexSrvIndex2 = mNullTexSrvIndex1 + 1;
 
@@ -961,16 +985,16 @@ void SsaoApp::BuildDescriptorHeaps()
     nullSrv.Offset(1, mCbvSrvUavDescriptorSize);
     md3dDevice->CreateShaderResourceView(nullptr, &srvDesc, nullSrv);
 
-    mShadowMap->BuildDescriptors(
-        GetCpuSrv(mShadowMapHeapIndex),
+    mShadowMap->BuildDescriptors(       // 创建：读取 shadowmap/深度图 使用的SRV
+        GetCpuSrv(mShadowMapHeapIndex), // 该srv应该在堆中的index（对应的暂空句柄）
         GetGpuSrv(mShadowMapHeapIndex),
         GetDsv(1));
 
     mSsao->BuildDescriptors(
-        mDepthStencilBuffer.Get(),
-        GetCpuSrv(mSsaoHeapIndexStart),
-        GetGpuSrv(mSsaoHeapIndexStart),
-        GetRtv(SwapChainBufferCount),
+        mDepthStencilBuffer.Get(),          // 获取 d3dapp通用的 深度/模板 缓冲区资源 （并创建对应的DSV）
+        GetCpuSrv(mSsaoHeapIndexStart),     
+        GetGpuSrv(mSsaoHeapIndexStart),     // 获取
+        GetRtv(SwapChainBufferCount),       // 当前使用的后台缓冲区的RTV
         mCbvSrvUavDescriptorSize,
         mRtvDescriptorSize);
 }
@@ -1299,21 +1323,20 @@ void SsaoApp::BuildPSOs()
     basePsoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
     basePsoDesc.NumRenderTargets = 1;
     basePsoDesc.RTVFormats[0] = mBackBufferFormat;
-    basePsoDesc.SampleDesc.Count = m4xMsaaState ? 4 : 1;
+    basePsoDesc.SampleDesc.Count = m4xMsaaState ? 4 : 1;    // 根据MSAA 对每个像素的采样
     basePsoDesc.SampleDesc.Quality = m4xMsaaState ? (m4xMsaaQuality - 1) : 0;
     basePsoDesc.DSVFormat = mDepthStencilFormat;
 
     //
     // PSO for opaque objects.
     //
-
     D3D12_GRAPHICS_PIPELINE_STATE_DESC opaquePsoDesc = basePsoDesc;
     opaquePsoDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_EQUAL;
     opaquePsoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
     ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&opaquePsoDesc, IID_PPV_ARGS(&mPSOs["opaque"])));
 
     //
-    // PSO for shadow map pass.
+    // PSO for shadow map pass.     阴影偏移、不需要RT
     //
     D3D12_GRAPHICS_PIPELINE_STATE_DESC smapPsoDesc = basePsoDesc;
     smapPsoDesc.RasterizerState.DepthBias = 100000;
@@ -1368,7 +1391,7 @@ void SsaoApp::BuildPSOs()
         reinterpret_cast<BYTE*>(mShaders["drawNormalsPS"]->GetBufferPointer()),
         mShaders["drawNormalsPS"]->GetBufferSize()
     };
-    drawNormalsPsoDesc.RTVFormats[0] = Ssao::NormalMapFormat;
+    drawNormalsPsoDesc.RTVFormats[0] = Ssao::NormalMapFormat;   // RT的格式
     drawNormalsPsoDesc.SampleDesc.Count = 1;
     drawNormalsPsoDesc.SampleDesc.Quality = 0;
     drawNormalsPsoDesc.DSVFormat = mDepthStencilFormat;
@@ -1378,7 +1401,8 @@ void SsaoApp::BuildPSOs()
     // PSO for SSAO.
     //
     D3D12_GRAPHICS_PIPELINE_STATE_DESC ssaoPsoDesc = basePsoDesc;
-    ssaoPsoDesc.InputLayout = { nullptr, 0 };
+    //  SSAO不需要输入参数
+    ssaoPsoDesc.InputLayout = { nullptr, 0 };           
     ssaoPsoDesc.pRootSignature = mSsaoRootSignature.Get();
     ssaoPsoDesc.VS =
     {
@@ -1391,7 +1415,8 @@ void SsaoApp::BuildPSOs()
         mShaders["ssaoPS"]->GetBufferSize()
     };
 
-    // SSAO effect does not need the depth buffer.
+    // SSAO effect does not need the depth buffer.  
+    // 不再需要深度buffer（normalmap时已经写入了，SSAO绘制点时 不用了 ）
     ssaoPsoDesc.DepthStencilState.DepthEnable = false;
     ssaoPsoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
     ssaoPsoDesc.RTVFormats[0] = Ssao::AmbientMapFormat;
@@ -1420,10 +1445,8 @@ void SsaoApp::BuildPSOs()
 	// PSO for sky.
 	//
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC skyPsoDesc = basePsoDesc;
-
 	// The camera is inside the sky sphere, so just turn off culling.
 	skyPsoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
-
 	// Make sure the depth function is LESS_EQUAL and not just LESS.  
 	// Otherwise, the normalized depth values at z = 1 (NDC) will 
 	// fail the depth test if the depth buffer was cleared to 1.
@@ -1449,7 +1472,8 @@ void SsaoApp::BuildFrameResources()
     {
         mFrameResources.push_back(std::make_unique<FrameResource>(md3dDevice.Get(),
             2, (UINT)mAllRitems.size(), (UINT)mMaterials.size()));
-        // 两个 pass
+        // 两个 pass  ：0-mainpass、 1-shadowmap的pass
+        // 1个SSAO的 常量（没有显式写出）
     }
 }
 
@@ -1672,31 +1696,35 @@ void SsaoApp::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vec
 
 void SsaoApp::DrawSceneToShadowMap()
 {
+    // 绘制shadowmap ：只需要绘制深度 到资源 
+
     mCommandList->RSSetViewports(1, &mShadowMap->Viewport());
     mCommandList->RSSetScissorRects(1, &mShadowMap->ScissorRect());
 
-    // Change to DEPTH_WRITE.
+    // 将资源 转换为 DEPTH_WRITE.
     mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mShadowMap->Resource(),
         D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_DEPTH_WRITE));
 
-    // Clear the back buffer and depth buffer.
+    // 清理 深度缓冲区
     mCommandList->ClearDepthStencilView(mShadowMap->Dsv(), 
         D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
-    // Specify the buffers we are going to render to.
+    // 不需要设置 RT、只需要设置 DSV
     mCommandList->OMSetRenderTargets(0, nullptr, false, &mShadowMap->Dsv());
 
-    // Bind the pass constant buffer for the shadow map pass.
+    // 根参数1：使用shadowmap的pass常量（偏移到 帧资源passcb的第二个）
     UINT passCBByteSize = d3dUtil::CalcConstantBufferByteSize(sizeof(PassConstants));
     auto passCB = mCurrFrameResource->PassCB->Resource();
     D3D12_GPU_VIRTUAL_ADDRESS passCBAddress = passCB->GetGPUVirtualAddress() + 1*passCBByteSize;
     mCommandList->SetGraphicsRootConstantBufferView(1, passCBAddress);
 
+    // 设置 PSO： 不需要RT、设置阴影偏移
     mCommandList->SetPipelineState(mPSOs["shadow_opaque"].Get());
 
+    // 绘制渲染项：所有的不透明物体（不会绘制到RT、只会保存深度到shadowmap）
     DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Opaque]);
 
-    // Change back to GENERIC_READ so we can read the texture in a shader.
+    // 转换shadowmap为 可读
     mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mShadowMap->Resource(),
         D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_GENERIC_READ));
 }
@@ -1708,25 +1736,30 @@ void SsaoApp::DrawNormalsAndDepth()
 
 	auto normalMap = mSsao->NormalMap();
 	auto normalMapRtv = mSsao->NormalMapRtv();
-	
-    // Change to RENDER_TARGET.
+
+    // SSAO的法线图 设置为RT
     mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(normalMap,
         D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET));
 
 	// Clear the screen normal map and depth buffer.
 	float clearValue[] = {0.0f, 0.0f, 1.0f, 0.0f};
+    // 清理 法线图、深度缓冲区
     mCommandList->ClearRenderTargetView(normalMapRtv, clearValue, 0, nullptr);
     mCommandList->ClearDepthStencilView(DepthStencilView(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
-	// Specify the buffers we are going to render to.
+	// 设置输出的RT为 SSAO的法线图
+    //  *************** 这里仍然使用深度缓冲区（虽然该次绘制normalmap没有用到，下一次就不需要再写入了）
     mCommandList->OMSetRenderTargets(1, &normalMapRtv, true, &DepthStencilView());
 
-    // Bind the constant buffer for this pass.
+    // 设置 根签名1：pass常量（没有偏移，使用的是mainpass）
     auto passCB = mCurrFrameResource->PassCB->Resource();
     mCommandList->SetGraphicsRootConstantBufferView(1, passCB->GetGPUVirtualAddress());
 
+    // 设置 PSO（绘制法线）
     mCommandList->SetPipelineState(mPSOs["drawNormals"].Get());
 
+    // 绘制渲染项：绘制所有不透明物体 到 SSAO法线图
+    //  深度信息 在 缓冲区
     DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Opaque]);
 
     // Change back to GENERIC_READ so we can read the texture in a shader.

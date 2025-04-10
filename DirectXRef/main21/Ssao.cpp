@@ -49,11 +49,11 @@ std::vector<float> Ssao::CalcGaussWeights(float sigma)
     assert(blurRadius <= MaxBlurRadius);
 
     std::vector<float> weights;
-    weights.resize(2 * blurRadius + 1);
+    weights.resize(2 * blurRadius + 1);     // 一维高斯模糊的参数
 
     float weightSum = 0.0f;
 
-    for(int i = -blurRadius; i <= blurRadius; ++i)
+    for(int i = -blurRadius; i <= blurRadius; ++i)  // 对称：x=i 为离中间的距离（越近 权值越大）
     {
         float x = (float)i;
 
@@ -115,8 +115,8 @@ void Ssao::BuildDescriptors(
 
     mhAmbientMap0GpuSrv = hGpuSrv;
     mhAmbientMap1GpuSrv = hGpuSrv.Offset(1, cbvSrvUavDescriptorSize);
-    mhNormalMapGpuSrv = hGpuSrv.Offset(1, cbvSrvUavDescriptorSize);
-    mhDepthMapGpuSrv = hGpuSrv.Offset(1, cbvSrvUavDescriptorSize);
+    mhNormalMapGpuSrv = hGpuSrv.Offset(1, cbvSrvUavDescriptorSize);     // normal的后一个就是 depth（绑定了通用的深度buffer）
+    mhDepthMapGpuSrv = hGpuSrv.Offset(1, cbvSrvUavDescriptorSize);      // 而 
     mhRandomVectorMapGpuSrv = hGpuSrv.Offset(1, cbvSrvUavDescriptorSize);
 
     mhNormalMapCpuRtv = hCpuRtv;
@@ -155,6 +155,8 @@ void Ssao::RebuildDescriptors(ID3D12Resource* depthStencilBuffer)
     md3dDevice->CreateRenderTargetView(mNormalMap.Get(), &rtvDesc, mhNormalMapCpuRtv);
 
     rtvDesc.Format = AmbientMapFormat;
+
+    // 为 两个AmbientMap 创建 RTV
     md3dDevice->CreateRenderTargetView(mAmbientMap0.Get(), &rtvDesc, mhAmbientMap0CpuRtv);
     md3dDevice->CreateRenderTargetView(mAmbientMap1.Get(), &rtvDesc, mhAmbientMap1CpuRtv);
 }
@@ -196,53 +198,63 @@ void Ssao::ComputeSsao(
 
 	// We compute the initial SSAO to AmbientMap0.
 
-    // Change to RENDER_TARGET.
+    // 将 AmbientMap0 转换为 RT
     cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mAmbientMap0.Get(),
         D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET));
   
 	float clearValue[] = {1.0f, 1.0f, 1.0f, 1.0f};
+    // 清理 RT
     cmdList->ClearRenderTargetView(mhAmbientMap0CpuRtv, clearValue, 0, nullptr);
      
-	// Specify the buffers we are going to render to.
+    // 使用 AmbientMap0 作为RT，不使用 DS
+    //  *************** 上一次 绘制normalmap时，就已经绘制了深度
     cmdList->OMSetRenderTargets(1, &mhAmbientMap0CpuRtv, true, nullptr);
 
     // Bind the constant buffer for this pass.
     auto ssaoCBAddress = currFrame->SsaoCB->Resource()->GetGPUVirtualAddress();
-    cmdList->SetGraphicsRootConstantBufferView(0, ssaoCBAddress);
-    cmdList->SetGraphicsRoot32BitConstant(1, 0, 0);
+    cmdList->SetGraphicsRootConstantBufferView(0, ssaoCBAddress);   // SSAO的根参数0： SSAO常量
+    cmdList->SetGraphicsRoot32BitConstant(1, 0, 0);                 // SSAO 根常量 ：0
 
 	// Bind the normal and depth maps.
-    cmdList->SetGraphicsRootDescriptorTable(2, mhNormalMapGpuSrv);
+    cmdList->SetGraphicsRootDescriptorTable(2, mhNormalMapGpuSrv);  // 根参数2（描述符表大小2）: 法线图、通用DSV
 
     // Bind the random vector map.
-    cmdList->SetGraphicsRootDescriptorTable(3, mhRandomVectorMapGpuSrv);
+    cmdList->SetGraphicsRootDescriptorTable(3, mhRandomVectorMapGpuSrv);    // 根参数3：随机向量
 
-    cmdList->SetPipelineState(mSsaoPso);
+    cmdList->SetPipelineState(mSsaoPso);    // 设置SSAO的PSO 
 
-	// Draw fullscreen quad.
+	// Draw fullscreen quad. 不绑定 顶点、索引buffer 
 	cmdList->IASetVertexBuffers(0, 0, nullptr);
     cmdList->IASetIndexBuffer(nullptr);
     cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	cmdList->DrawInstanced(6, 1, 0, 0);
-   
+	cmdList->DrawInstanced(6, 1, 0, 0); // 直接绘制6个点（2个三角形）
+    // SSAO hlsl
+    //  PS 返回的是 可及率
+    //  mAmbientMap0 ：存放的是 可及率（可以到达 -- 1）
+
+
+
 	// Change back to GENERIC_READ so we can read the texture in a shader.
     cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(mAmbientMap0.Get(),
         D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_GENERIC_READ));
 
+    // 
     BlurAmbientMap(cmdList, currFrame, blurCount);
 }
  
 void Ssao::BlurAmbientMap(ID3D12GraphicsCommandList* cmdList, FrameResource* currFrame, int blurCount)
 {
+    // PSO 不同（用的shader不同）
     cmdList->SetPipelineState(mBlurPso);
-
+    // 仍然使用 SSAO常量
     auto ssaoCBAddress = currFrame->SsaoCB->Resource()->GetGPUVirtualAddress();
     cmdList->SetGraphicsRootConstantBufferView(0, ssaoCBAddress);
  
-    for(int i = 0; i < blurCount; ++i)
+    for(int i = 0; i < blurCount; ++i)  // 模糊次数
     {
-        BlurAmbientMap(cmdList, true);
-        BlurAmbientMap(cmdList, false);
+        // 先水平，再垂直（二维高斯模糊-》两个1维）
+        BlurAmbientMap(cmdList, true);  // 平行 true
+        BlurAmbientMap(cmdList, false); // 垂直
     }
 }
 
@@ -256,41 +268,43 @@ void Ssao::BlurAmbientMap(ID3D12GraphicsCommandList* cmdList, bool horzBlur)
 	// horizontal and vertical blur passes.
 	if(horzBlur == true)
 	{
-		output = mAmbientMap1.Get();
-		inputSrv = mhAmbientMap0GpuSrv;
+		output = mAmbientMap1.Get();        // 第一次：如果水平模糊：map0 -》 map1
+		inputSrv = mhAmbientMap0GpuSrv; //gpu读取map0，输出map1
 		outputRtv = mhAmbientMap1CpuRtv;
-        cmdList->SetGraphicsRoot32BitConstant(1, 1, 0);
+        cmdList->SetGraphicsRoot32BitConstant(1, 1, 0); // 水平 - 设置值为1
 	}
 	else
 	{
-		output = mAmbientMap0.Get();
+		output = mAmbientMap0.Get();        // 第二次 ：在 map1 的基础上 -》map0
 		inputSrv = mhAmbientMap1GpuSrv;
 		outputRtv = mhAmbientMap0CpuRtv;
         cmdList->SetGraphicsRoot32BitConstant(1, 0, 0);
 	}
- 
+    
+    // 设置输出的资源 为RT
     cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(output,
         D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET));
 
 	float clearValue[] = { 1.0f, 1.0f, 1.0f, 1.0f };
     cmdList->ClearRenderTargetView(outputRtv, clearValue, 0, nullptr);
- 
+    // 只处理 RT 
     cmdList->OMSetRenderTargets(1, &outputRtv, true, nullptr);
 	
     // Normal/depth map still bound.
 
-
     // Bind the normal and depth maps.
-    cmdList->SetGraphicsRootDescriptorTable(2, mhNormalMapGpuSrv);
+    cmdList->SetGraphicsRootDescriptorTable(2, mhNormalMapGpuSrv);  // 根参数2：法线图、DSV
 
     // Bind the input ambient map to second texture table.
-    cmdList->SetGraphicsRootDescriptorTable(3, inputSrv);
+    cmdList->SetGraphicsRootDescriptorTable(3, inputSrv);   // 根参数3： 对于模糊，应该传入 遮蔽图
 	
 	// Draw fullscreen quad.
 	cmdList->IASetVertexBuffers(0, 0, nullptr);
     cmdList->IASetIndexBuffer(nullptr);
     cmdList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	cmdList->DrawInstanced(6, 1, 0, 0);
+    // 绘制 
+    // SSAOBlur hlsl
    
     cmdList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(output,
         D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_GENERIC_READ));
@@ -386,14 +400,16 @@ void Ssao::BuildRandomVectorTexture(ID3D12GraphicsCommandList* cmdList)
     const UINT64 uploadBufferSize = GetRequiredIntermediateSize(mRandomVectorMap.Get(), 0, num2DSubresources);
 
     ThrowIfFailed(md3dDevice->CreateCommittedResource(
-        &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),
+        &CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD),   // 上传堆
         D3D12_HEAP_FLAG_NONE,
         &CD3DX12_RESOURCE_DESC::Buffer(uploadBufferSize),
         D3D12_RESOURCE_STATE_GENERIC_READ,
         nullptr,
         IID_PPV_ARGS(mRandomVectorMapUploadBuffer.GetAddressOf())));
 
-    XMCOLOR initData[256 * 256];
+
+
+    XMCOLOR initData[256 * 256];    // 0-1 的随机 4维向量/颜色
     for(int i = 0; i < 256; ++i)
     {
         for(int j = 0; j < 256; ++j)
@@ -407,7 +423,7 @@ void Ssao::BuildRandomVectorTexture(ID3D12GraphicsCommandList* cmdList)
 
     D3D12_SUBRESOURCE_DATA subResourceData = {};
     subResourceData.pData = initData;
-    subResourceData.RowPitch = 256 * sizeof(XMCOLOR);
+    subResourceData.RowPitch = 256 * sizeof(XMCOLOR);   // 一行数据大小
     subResourceData.SlicePitch = subResourceData.RowPitch * 256;
 
     //
@@ -431,6 +447,10 @@ void Ssao::BuildOffsetVectors()
 	// opposites sides of the cubes.  This way we still get the vectors spread out even
 	// if we choose to use less than 14 samples.
 	
+    // 从 中间 向：
+    // 立方体的 8个角、6个面的中点： 
+    //      交替选择对面，均匀生成向量
+    
 	// 8 cube corners
 	mOffsets[0] = XMFLOAT4(+1.0f, +1.0f, +1.0f, 0.0f);
 	mOffsets[1] = XMFLOAT4(-1.0f, -1.0f, -1.0f, 0.0f);
@@ -454,10 +474,12 @@ void Ssao::BuildOffsetVectors()
 	mOffsets[12] = XMFLOAT4(0.0f, 0.0f, -1.0f, 0.0f);
 	mOffsets[13] = XMFLOAT4(0.0f, 0.0f, +1.0f, 0.0f);
 
+
+    // 对 这些向量（立方体中心 到 offset），进行 长度缩放
     for(int i = 0; i < 14; ++i)
 	{
 		// Create random lengths in [0.25, 1.0].
-		float s = MathHelper::RandF(0.25f, 1.0f);
+		float s = MathHelper::RandF(0.25f, 1.0f);   
 		
 		XMVECTOR v = s * XMVector4Normalize(XMLoadFloat4(&mOffsets[i]));
 		

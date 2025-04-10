@@ -57,7 +57,9 @@ VertexOut VS(VertexIn vin)
     vout.PosH = mul(posW, gViewProj);
 
     // Generate projective tex-coords to project SSAO map onto scene.
-    vout.SsaoPosH = mul(posW, gViewProjTex);
+    vout.SsaoPosH = mul(posW, gViewProjTex);    
+    // 生成SSAO所需要的坐标 ：从世界空间的点 -》 View-Proj-T
+    //      从投影空间的齐次坐标 除了w，其他分量是 -1~1 近似ndc了 ，  xy坐标变换到 0-1
 	
 	// Output vertex attributes for interpolation across triangle.
 	float4 texC = mul(float4(vin.TexC, 0.0f, 1.0f), gTexTransform);
@@ -103,6 +105,7 @@ float4 PS(VertexOut pin) : SV_Target
 
     // Finish texture projection and sample SSAO map.
     pin.SsaoPosH /= pin.SsaoPosH.w;
+    //  采样 
     float ambientAccess = gSsaoMap.Sample(gsamLinearClamp, pin.SsaoPosH.xy, 0.0f).r;
 
     // Light terms.

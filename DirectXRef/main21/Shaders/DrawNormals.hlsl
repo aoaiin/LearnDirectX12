@@ -42,6 +42,7 @@ VertexOut VS(VertexIn vin)
 	MaterialData matData = gMaterialData[gMaterialIndex];
 	
     // Assumes nonuniform scaling; otherwise, need to use inverse-transpose of world matrix.
+	// 将顶点法线、切线，变化到世界空间
     vout.NormalW = mul(vin.NormalL, (float3x3)gWorld);
 	vout.TangentW = mul(vin.TangentU, (float3x3)gWorld);
 
@@ -77,10 +78,10 @@ float4 PS(VertexOut pin) : SV_Target
 	// Interpolating normal can unnormalize it, so renormalize it.
     pin.NormalW = normalize(pin.NormalW);
 	
-    // NOTE: We use interpolated vertex normal for SSAO.
+    // NOTE: We use interpolated vertex normal for SSAO.	// 使用 插值顶点的法线--像素法线  来做SSAO
 
     // Write normal in view space coordinates
-    float3 normalV = mul(pin.NormalW, (float3x3)gView);
+    float3 normalV = mul(pin.NormalW, (float3x3)gView);	// 变化到 相机/视图 空间
     return float4(normalV, 0.0f);
 }
 

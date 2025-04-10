@@ -3,15 +3,34 @@
 > 笔记和习题 记录在 语雀/TA/D3D
 > https://www.yuque.com/yuqueyonghuc94hae/vvitgx/uwyaoliwes9ou2wd
 
-参考以及遇到的问题
+---
 
-1. 初始化篇中，重构代码时：
-   一直调试不好，总是在 PeekMessage；进不去 Draw；
-   然后发现 C++ 没有 super，只能用 `父类::Draw()` 调用父类的 Draw
+# 章节
 
-2. 感觉直接 看书本 源代码示例比较好： 重新创建了一个 工程 DirectXRef ；
-   记得每个章节 引用对应的现有项 文件
+### 视锥体剔除
 
-3. 然后 从第 6 章开始 写一下习题：
-   mainX.cpp:第 X 章的源码示例
-   mainXL.cpp:第 X 章的习题
+<img src="./DirectXRef/main16/实例化和视锥体剔除.gif" width="300" alt="实例化和视锥体剔除.png"/>
+
+### 拾取
+
+<img src="./DirectXRef/main17/Pickup.gif" width="300" alt="拾取.png"/>
+
+### cubemap
+
+环境贴图 和 动态 cubemap
+<img src="./DirectXRef/main18/Cubemap/cubemap.gif" width="300" alt="环境贴图"/>
+<img src="./DirectXRef/main18/DynamicCube/dynamicCubemap.gif" width="300" alt="动态cubemap"/>
+
+### normalmap
+
+<img src="./DirectXRef/main19/normal.jpg" width="300" alt="normal"/>
+<img src="./DirectXRef/main19/SampleNormal.jpg" width="300" alt="normal"/>
+<img src="./DirectXRef/main19/worldNormal.jpg" width="300" alt="normal"/>
+
+### ShadowMap
+
+<img src="./DirectXRef/main20/shadowMap.gif" width="300" alt="shadowmap"/>
+
+### SSAO
+
+<img src="./DirectXRef/main21/SSAO.gif" width="300" alt="SSAO"/>

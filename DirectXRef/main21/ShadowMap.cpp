@@ -57,7 +57,8 @@ void ShadowMap::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuSrv,
 	                             CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuDsv)
 {
 	// Save references to the descriptors. 
-	mhCpuSrv = hCpuSrv;
+	// 传入的句柄 都暂时无效（只能代表 SRV该在堆中的位置index）
+	mhCpuSrv = hCpuSrv;	
 	mhGpuSrv = hGpuSrv;
     mhCpuDsv = hCpuDsv;
 

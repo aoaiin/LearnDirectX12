@@ -57,11 +57,12 @@ private:
 	UINT mHeight = 0;
 	DXGI_FORMAT mFormat = DXGI_FORMAT_R24G8_TYPELESS;
 
+	// shadowmap 要作为 深度写入（DSV），也要供着色器读取（SRV）
 	CD3DX12_CPU_DESCRIPTOR_HANDLE mhCpuSrv;
 	CD3DX12_GPU_DESCRIPTOR_HANDLE mhGpuSrv;
 	CD3DX12_CPU_DESCRIPTOR_HANDLE mhCpuDsv;
 
-	Microsoft::WRL::ComPtr<ID3D12Resource> mShadowMap = nullptr;
+	Microsoft::WRL::ComPtr<ID3D12Resource> mShadowMap = nullptr;	// shadowmap/深度图
 };
 
  

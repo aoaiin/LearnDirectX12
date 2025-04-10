@@ -32,7 +32,7 @@ struct MaterialData
 
 TextureCube gCubeMap : register(t0);
 Texture2D gShadowMap : register(t1);
-Texture2D gSsaoMap   : register(t2);
+Texture2D gSsaoMap   : register(t2);    // debug面板、调整光照 需要采样
 
 // An array of textures, which is only supported in shader model 5.1+.  Unlike Texture2DArray, the textures
 // in this array can be different sizes and formats, making it more flexible than texture arrays.

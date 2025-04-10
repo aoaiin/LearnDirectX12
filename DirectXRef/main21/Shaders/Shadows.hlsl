@@ -27,7 +27,7 @@ VertexOut VS(VertexIn vin)
     float4 posW = mul(float4(vin.PosL, 1.0f), gWorld);
 
     // Transform to homogeneous clip space.
-    vout.PosH = mul(posW, gViewProj);
+    vout.PosH = mul(posW, gViewProj);		// 光源相机的 View-正交Proj
 	
 	// Output vertex attributes for interpolation across triangle.
 	float4 texC = mul(float4(vin.TexC, 0.0f, 1.0f), gTexTransform);
